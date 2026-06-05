@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guardrail Financial — Automated Auditing for Nigerian SMEs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--gold:#febc2e;--red:#df3e3e;--s900:#0f172a;--s800:#1e293b}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:10px;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--slate);color:#fff;overflow-x:hidden}
+
+/* GRID BG */
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(52,211,153,.018)1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.018)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* ORBS */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;animation:orbFloat 12s ease-in-out infinite}
+.orb-1{width:60rem;height:60rem;background:radial-gradient(circle,rgba(52,211,153,.055),transparent 70%);top:-20rem;left:-15rem;animation-delay:0s}
+.orb-2{width:50rem;height:50rem;background:radial-gradient(circle,rgba(79,70,229,.045),transparent 70%);bottom:-10rem;right:-10rem;animation-delay:-6s}
+.orb-3{width:35rem;height:35rem;background:radial-gradient(circle,rgba(52,211,153,.03),transparent 70%);top:40%;right:5%;animation-delay:-3s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(20px,-15px) scale(1.03)}66%{transform:translate(-15px,20px) scale(.97)}}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:6.8rem;display:flex;align-items:center;justify-content:space-between;padding:0 5rem;background:rgba(2,6,23,.82);backdrop-filter:blur(24px);border-bottom:1px solid rgba(52,211,153,.07);transition:all .3s}
+.nav-logo{display:flex;align-items:center;gap:1rem;text-decoration:none}
+.logo-name{font-size:1.7rem;font-weight:800;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.logo-fin{font-size:.88rem;font-weight:600;letter-spacing:.14em;color:var(--mint);font-family:'JetBrains Mono',monospace;display:block;line-height:1}
+.nav-center{display:flex;align-items:center;gap:.4rem}
+.nav-link{padding:.7rem 1.4rem;border-radius:.8rem;font-size:1.35rem;font-weight:500;color:rgba(255,255,255,.55);text-decoration:none;transition:all .2s}
+.nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-r{display:flex;align-items:center;gap:1rem;position:relative}
+.theme-btn{width:3.8rem;height:3.8rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.1);background:transparent;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.theme-btn:hover{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+.btn-nav-cta{display:inline-flex;align-items:center;gap:.5rem;background:var(--mint);color:#020617;font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:700;padding:.8rem 1.8rem;border-radius:.8rem;text-decoration:none;transition:all .2s}
+.btn-nav-cta:hover{background:#6ee7b7;transform:translateY(-1px)}
+.menu-btn{display:none;align-items:center;gap:.6rem;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:.8rem;padding:.8rem 1.4rem;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:600;color:rgba(255,255,255,.75)}
+.ham span{display:block;height:2px;width:16px;background:var(--mint);border-radius:2px;margin-bottom:3px}
+.ham span:last-child{margin-bottom:0}
+.dropdown{position:absolute;top:calc(100% + 1rem);right:0;background:rgba(10,16,35,.98);backdrop-filter:blur(24px);border:1px solid rgba(52,211,153,.14);border-radius:1.4rem;padding:.6rem;min-width:19rem;opacity:0;pointer-events:none;transform:translateY(-8px);transition:all .25s;z-index:200}
+.dropdown.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.dd-item{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.4rem;border-radius:1rem;font-size:1.4rem;font-weight:500;color:rgba(255,255,255,.7);text-decoration:none;transition:all .2s}
+.dd-item:hover{background:rgba(52,211,153,.08);color:#fff}
+.dd-cta{background:var(--mint);color:#020617!important;font-weight:700;margin-bottom:.4rem}
+.dd-cta:hover{background:#6ee7b7}
+
+/* SCROLL REVEAL */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s ease,transform .65s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-left{opacity:0;transform:translateX(-32px);transition:opacity .65s ease,transform .65s ease}
+.reveal-left.visible{opacity:1;transform:translateX(0)}
+.reveal-right{opacity:0;transform:translateX(32px);transition:opacity .65s ease,transform .65s ease}
+.reveal-right.visible{opacity:1;transform:translateX(0)}
+.delay-1{transition-delay:.1s}.delay-2{transition-delay:.2s}.delay-3{transition-delay:.3s}.delay-4{transition-delay:.4s}.delay-5{transition-delay:.5s}
+
+/* HERO */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:6rem;padding:10rem 5rem 6rem;position:relative;z-index:1;max-width:148rem;margin:0 auto}
+.hero-left{}
+.hero-badge{display:inline-flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);border-radius:10rem;padding:.65rem 1.6rem;font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mint);margin-bottom:3rem;animation:slideUp .7s ease both}
+.bdot{width:.65rem;height:.65rem;border-radius:50%;background:var(--mint);animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideRight{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+.hero-h{font-size:clamp(5rem,6.5vw,8.4rem);font-weight:900;letter-spacing:-.045em;line-height:1.0;color:#fff;margin-bottom:2.4rem;animation:slideUp .7s .1s ease both}
+.hero-h .ac{color:var(--mint);display:block}
+.hero-h .dim{color:rgba(255,255,255,.3)}
+.hero-sub{font-size:1.7rem;color:rgba(255,255,255,.5);line-height:1.7;max-width:50rem;margin-bottom:4rem;animation:slideUp .7s .2s ease both}
+.hero-sub strong{color:rgba(255,255,255,.85);font-weight:600}
+.hero-cta{display:flex;align-items:center;gap:1.6rem;margin-bottom:3.2rem;flex-wrap:wrap;animation:slideUp .7s .3s ease both}
+.btn-primary{display:inline-flex;align-items:center;gap:.8rem;background:var(--mint);color:#020617;font-family:'Inter',sans-serif;font-size:1.65rem;font-weight:700;padding:1.7rem 3.8rem;border-radius:1.2rem;text-decoration:none;transition:all .25s;box-shadow:0 6px 32px rgba(52,211,153,.3)}
+.btn-primary:hover{background:#6ee7b7;transform:translateY(-2px);box-shadow:0 12px 48px rgba(52,211,153,.45)}
+.btn-ghost{display:inline-flex;align-items:center;gap:.8rem;background:transparent;color:rgba(255,255,255,.68);font-family:'Inter',sans-serif;font-size:1.65rem;font-weight:600;padding:1.7rem 3.2rem;border-radius:1.2rem;text-decoration:none;border:1.5px solid rgba(255,255,255,.14);transition:all .25s}
+.btn-ghost:hover{border-color:rgba(255,255,255,.3);color:#fff;background:rgba(255,255,255,.04)}
+.hero-trust{display:flex;align-items:center;gap:2.4rem;font-size:1.2rem;color:rgba(255,255,255,.3);flex-wrap:wrap;animation:slideUp .7s .4s ease both}
+.trust-item{display:flex;align-items:center;gap:.6rem}
+.trust-item::before{content:'✓';color:var(--mint);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:1.15rem}
+
+/* HERO VISUAL */
+.hero-right{position:relative;animation:slideRight .8s .25s ease both}
+.term-card{background:rgba(10,16,35,.92);border:1px solid rgba(52,211,153,.18);border-radius:2rem;padding:2.8rem;font-family:'JetBrains Mono',monospace;position:relative;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.5),0 0 60px rgba(52,211,153,.05)}
+.term-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,rgba(52,211,153,.04),transparent 60%);pointer-events:none}
+.term-scanline{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(52,211,153,.12) 50%,transparent 100%);animation:scanDown 5s linear infinite;pointer-events:none}
+@keyframes scanDown{from{top:0}to{top:100%}}
+.term-bar{display:flex;gap:.5rem;align-items:center;margin-bottom:2.4rem}
+.td{width:1.2rem;height:1.2rem;border-radius:50%}
+.term-title{font-size:1.05rem;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-left:auto}
+.term-lines{min-height:19rem;display:flex;flex-direction:column;gap:.4rem}
+.tl{font-size:1.2rem;line-height:1.6;padding:.2rem 0;animation:fadeInLine .3s ease both}
+@keyframes fadeInLine{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.tl .dim{color:rgba(255,255,255,.28)}
+.tl .kw{color:var(--mint)}
+.tl .val{color:#93c5fd}
+.tl .warn{color:var(--gold)}
+.tl .err{color:#f87171}
+.tl .ok{color:var(--mint);font-weight:700}
+.term-progress{height:.5rem;background:rgba(255,255,255,.07);border-radius:10rem;overflow:hidden;margin-top:2rem}
+.term-progress-fill{height:100%;border-radius:10rem;background:linear-gradient(90deg,var(--mint),#6ee7b7);width:0%;transition:width .4s ease}
+.term-result{background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);border-radius:1rem;padding:1.4rem 1.8rem;margin-top:1.6rem;font-size:1.2rem;color:var(--mint);opacity:0;transition:opacity .4s ease;display:flex;align-items:center;gap:1rem}
+.term-result.show{opacity:1}
+.term-cursor{display:inline-block;width:.8rem;height:1.4rem;background:var(--mint);vertical-align:middle;animation:blink .8s steps(1) infinite;margin-left:.2rem}
+
+/* FLOATING METRIC CARDS */
+.float-cards{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none}
+.fc{position:absolute;background:rgba(15,23,42,.92);border-radius:1.2rem;padding:1.2rem 1.6rem;border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(12px);font-size:1.2rem;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.fc-1{top:-3rem;right:-2rem;animation:floatA 5s ease-in-out infinite;border-color:rgba(52,211,153,.18)}
+.fc-2{bottom:5rem;left:-4rem;animation:floatB 6s ease-in-out infinite .8s;border-color:rgba(79,70,229,.2)}
+.fc-3{top:42%;right:-5rem;animation:floatA 7s ease-in-out infinite 1.5s;border-color:rgba(254,188,46,.15)}
+@keyframes floatA{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-10px) rotate(.5deg)}}
+@keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
+.fc-label{font-size:1rem;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.3rem}
+.fc-val{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:1.5rem;color:#fff}
+.fc-val.green{color:var(--mint)}
+.fc-val.indigo{color:rgba(165,180,252,.9)}
+.fc-val.gold{color:var(--gold)}
+.fc-dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--mint);display:inline-block;margin-right:.4rem;animation:blink 1.8s infinite}
+.fc-dot.gold{background:var(--gold)}
+
+/* BANK STRIP */
+.bank-strip{border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);padding:2.2rem 0;overflow:hidden;position:relative;z-index:1}
+.bank-strip::before,.bank-strip::after{content:'';position:absolute;top:0;bottom:0;width:8rem;z-index:2;pointer-events:none}
+.bank-strip::before{left:0;background:linear-gradient(90deg,var(--slate),transparent)}
+.bank-strip::after{right:0;background:linear-gradient(-90deg,var(--slate),transparent)}
+.bank-track{display:flex;gap:0;animation:trackSlide 28s linear infinite;width:max-content}
+@keyframes trackSlide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.bank-item{display:flex;align-items:center;gap:.8rem;padding:0 3rem;font-size:1.3rem;font-weight:600;color:rgba(255,255,255,.3);letter-spacing:.04em;white-space:nowrap;transition:color .2s}
+.bank-item:hover{color:rgba(255,255,255,.65)}
+.bank-dot{width:.5rem;height:.5rem;border-radius:50%;background:rgba(52,211,153,.35);flex-shrink:0}
+
+/* SECTION LAYOUT */
+.section{position:relative;z-index:1}
+.s-wrap{max-width:120rem;margin:0 auto;padding:0 5rem}
+.s-label{font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--mint);margin-bottom:1.2rem}
+.s-h2{font-size:clamp(3.6rem,4.5vw,5.6rem);font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1.05}
+.s-h2 .ac{color:var(--mint)}
+.s-p{font-size:1.55rem;color:rgba(255,255,255,.48);line-height:1.72;max-width:64rem}
+
+/* STATS SECTION */
+.stats-sec{padding:8rem 0 6rem;position:relative;z-index:1}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;margin-top:5rem}
+.stat-c{background:rgba(15,23,42,.5);border:1px solid rgba(255,255,255,.07);border-radius:2rem;padding:3.2rem 2.8rem;position:relative;overflow:hidden;transition:all .3s}
+.stat-c:hover{border-color:rgba(52,211,153,.15);transform:translateY(-3px)}
+.stat-c::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at bottom left,rgba(52,211,153,.04),transparent 70%);pointer-events:none}
+.stat-n{font-family:'JetBrains Mono',monospace;font-size:4rem;font-weight:700;color:var(--mint);line-height:1;margin-bottom:.8rem}
+.stat-l{font-size:1.3rem;color:rgba(255,255,255,.42);line-height:1.45}
+
+/* PAIN SECTION */
+.pain-sec{padding:8rem 0;position:relative;z-index:1}
+.pain-intro{display:flex;align-items:flex-end;justify-content:space-between;gap:4rem;margin-bottom:5rem;flex-wrap:wrap}
+.pain-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
+.pain-card{background:rgba(223,62,62,.04);border:1px solid rgba(223,62,62,.12);border-radius:2rem;padding:3.2rem;transition:all .3s}
+.pain-card:hover{border-color:rgba(223,62,62,.22);transform:translateY(-3px)}
+.pain-icon{font-size:2.8rem;margin-bottom:1.6rem}
+.pain-n{font-family:'JetBrains Mono',monospace;font-size:3.6rem;font-weight:700;color:#f87171;line-height:1;margin-bottom:.6rem}
+.pain-title{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:.8rem}
+.pain-desc{font-size:1.35rem;color:rgba(255,255,255,.48);line-height:1.65}
+.pain-arrow{text-align:center;padding:3rem 0;position:relative;z-index:1}
+.arrow-line{display:inline-flex;flex-direction:column;align-items:center;gap:1rem}
+.arrow-label{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mint);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.2);border-radius:10rem;padding:.6rem 1.8rem}
+.arrow-svg{color:var(--mint);font-size:2.4rem;animation:bounceDown .8s ease-in-out infinite}
+@keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.solve-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem}
+.solve-card{background:rgba(52,211,153,.04);border:1px solid rgba(52,211,153,.12);border-radius:2rem;padding:3.2rem;transition:all .3s}
+.solve-card:hover{border-color:rgba(52,211,153,.25);transform:translateY(-3px)}
+.solve-n{font-family:'JetBrains Mono',monospace;font-size:3.6rem;font-weight:700;color:var(--mint);line-height:1;margin-bottom:.6rem}
+.solve-title{font-size:1.6rem;font-weight:700;color:#fff;margin-bottom:.8rem}
+.solve-desc{font-size:1.35rem;color:rgba(255,255,255,.48);line-height:1.65}
+
+/* HOW IT WORKS */
+.how-sec{padding:6rem 0 8rem;position:relative;z-index:1}
+.steps-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:6rem;position:relative}
+.steps-row::before{content:'';position:absolute;top:4.8rem;left:16.66%;right:16.66%;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.25),rgba(52,211,153,.25),transparent);pointer-events:none}
+.step{text-align:center;padding:0 3rem}
+.step-num-wrap{width:8rem;height:8rem;border-radius:50%;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 2.4rem;position:relative;z-index:1}
+.step-num{font-family:'JetBrains Mono',monospace;font-size:2rem;font-weight:700;color:var(--mint)}
+.step-icon{font-size:2.2rem;margin-bottom:1.6rem}
+.step-h{font-size:1.9rem;font-weight:800;color:#fff;margin-bottom:1rem;letter-spacing:-.02em}
+.step-p{font-size:1.35rem;color:rgba(255,255,255,.45);line-height:1.68}
+
+/* PILLAR FEATURE BLOCKS */
+.pillars-sec{padding:0 0 8rem;position:relative;z-index:1}
+.pillar-block{display:grid;grid-template-columns:1fr 1fr;gap:8rem;align-items:center;max-width:120rem;margin:0 auto;padding:5rem 5rem 5rem;border-bottom:1px solid rgba(255,255,255,.04)}
+.pillar-block:last-child{border-bottom:none}
+.pillar-block.flip .pb-text{order:2}
+.pillar-block.flip .pb-visual{order:1}
+.pb-num{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,.45);margin-bottom:1rem}
+.pb-icon{font-size:3rem;margin-bottom:1.6rem;display:block}
+.pb-h{font-size:3.8rem;font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1.08;margin-bottom:1.4rem}
+.pb-h .ac{color:var(--mint)}
+.pb-p{font-size:1.5rem;color:rgba(255,255,255,.48);line-height:1.75;margin-bottom:2.8rem}
+.pb-feats{list-style:none}
+.pb-feats li{display:flex;align-items:flex-start;gap:1rem;font-size:1.38rem;color:rgba(255,255,255,.62);padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.pb-feats li:last-child{border-bottom:none}
+.pb-feats li::before{content:'◆';color:var(--mint);font-size:.75rem;flex-shrink:0;margin-top:.45rem}
+.pb-visual{background:rgba(10,16,35,.85);border:1px solid rgba(52,211,153,.14);border-radius:2.4rem;padding:3.2rem;font-family:'JetBrains Mono',monospace;min-height:32rem;display:flex;flex-direction:column;gap:1rem;position:relative;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.35)}
+.pb-visual::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(52,211,153,.04),transparent 60%);pointer-events:none}
+.vis-bar{display:flex;gap:.5rem;margin-bottom:1.2rem}
+.vd{width:1.1rem;height:1.1rem;border-radius:50%}
+.vis-line{font-size:1.2rem;color:rgba(255,255,255,.58);padding:.25rem 0}
+.vis-line .kw{color:var(--mint)}
+.vis-line .val{color:#93c5fd}
+.vis-line .warn{color:var(--gold)}
+.vis-line .err{color:#f87171}
+.vis-line .dim{color:rgba(255,255,255,.28)}
+.vis-result{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.14);border-radius:.8rem;padding:1.2rem 1.6rem;margin-top:.6rem;font-size:1.2rem;color:var(--mint)}
+
+/* TESTIMONIALS */
+.testi-sec{padding:8rem 0;position:relative;z-index:1}
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4rem;margin-top:5.6rem}
+.testi{background:rgba(15,23,42,.6);border:1px solid rgba(255,255,255,.07);border-radius:2rem;padding:3.4rem;transition:all .3s;display:flex;flex-direction:column}
+.testi:hover{border-color:rgba(52,211,153,.15);transform:translateY(-4px);box-shadow:0 24px 60px rgba(0,0,0,.3)}
+.testi-stars{color:var(--gold);font-size:1.4rem;letter-spacing:.1rem;margin-bottom:2rem}
+.testi-metric{font-family:'JetBrains Mono',monospace;font-size:3.2rem;font-weight:700;color:var(--mint);line-height:1;margin-bottom:.6rem}
+.testi-metric-label{font-size:1.1rem;color:rgba(255,255,255,.35);font-family:'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2rem}
+.testi-q{font-size:1.42rem;color:rgba(255,255,255,.6);line-height:1.72;font-style:italic;margin-bottom:2.4rem;flex:1}
+.testi-q .hl{color:rgba(255,255,255,.9);font-style:normal;font-weight:600}
+.testi-a{display:flex;align-items:center;gap:1.2rem}
+.testi-av{width:4.2rem;height:4.2rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.5rem;color:#020617;flex-shrink:0}
+.testi-nm{font-size:1.35rem;font-weight:700;color:#fff}
+.testi-rl{font-size:1.15rem;color:rgba(255,255,255,.38)}
+
+/* PRICING TEASER */
+.price-sec{padding:8rem 0;position:relative;z-index:1}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4rem;margin-top:5.6rem}
+.price-c{background:rgba(15,23,42,.65);border:1px solid rgba(255,255,255,.07);border-radius:2.4rem;padding:3.6rem;transition:all .3s;position:relative}
+.price-c:hover{transform:translateY(-4px)}
+.price-c.pop{border-color:rgba(52,211,153,.3);background:rgba(15,23,42,.85)}
+.pop-badge{position:absolute;top:-1.5rem;left:50%;transform:translateX(-50%);background:var(--mint);color:#020617;font-size:1.15rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.5rem 2rem;border-radius:10rem;font-family:'JetBrains Mono',monospace;white-space:nowrap}
+.price-name{font-size:1.3rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.45);font-family:'JetBrains Mono',monospace;margin-bottom:1.4rem}
+.price-val{font-family:'JetBrains Mono',monospace;font-size:5rem;font-weight:700;color:#fff;letter-spacing:-.02em;line-height:1}
+.price-val .cur{font-size:2.4rem;color:rgba(255,255,255,.4);vertical-align:super;font-weight:500}
+.price-per{font-size:1.3rem;color:rgba(255,255,255,.35);margin:.6rem 0 1.6rem}
+.price-desc{font-size:1.38rem;color:rgba(255,255,255,.48);line-height:1.65;margin-bottom:2.8rem;min-height:5rem}
+.price-btn{display:block;width:100%;text-align:center;padding:1.4rem;border-radius:1.1rem;font-size:1.45rem;font-weight:700;font-family:'Inter',sans-serif;text-decoration:none;transition:all .25s;border:none;cursor:pointer}
+.price-btn.free{background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);border:1.5px solid rgba(255,255,255,.12)}
+.price-btn.free:hover{background:rgba(255,255,255,.12);color:#fff}
+.price-btn.pro{background:var(--mint);color:#020617;box-shadow:0 4px 20px rgba(52,211,153,.25)}
+.price-btn.pro:hover{background:#6ee7b7}
+.price-btn.biz{background:var(--indigo);color:#fff}
+.price-btn.biz:hover{background:#6058e8}
+.price-footer{text-align:center;margin-top:3.6rem;font-size:1.35rem;color:rgba(255,255,255,.32)}
+.price-footer a{color:var(--mint);text-decoration:none}
+.price-footer a:hover{text-decoration:underline}
+
+/* CTA */
+.cta-sec{padding:8rem 5rem 14rem;position:relative;z-index:1}
+.cta-box{max-width:92rem;margin:0 auto;background:linear-gradient(155deg,rgba(52,211,153,.07),rgba(79,70,229,.05));border:1px solid rgba(52,211,153,.18);border-radius:3.2rem;padding:9rem 8rem;text-align:center;position:relative;overflow:hidden}
+.cta-box::before{content:'';position:absolute;top:-8rem;left:50%;transform:translateX(-50%);width:50rem;height:50rem;border-radius:50%;background:radial-gradient(circle,rgba(52,211,153,.06),transparent 70%);pointer-events:none}
+.cta-h{font-size:clamp(4rem,5.5vw,6.8rem);font-weight:900;letter-spacing:-.04em;color:#fff;margin-bottom:1.8rem;line-height:1.0;position:relative}
+.cta-h .ac{color:var(--mint)}
+.cta-p{font-size:1.7rem;color:rgba(255,255,255,.5);margin-bottom:5rem;max-width:58rem;margin-left:auto;margin-right:auto;line-height:1.65;position:relative}
+.cta-btns{display:flex;align-items:center;justify-content:center;gap:1.6rem;flex-wrap:wrap;position:relative}
+.cta-note{font-size:1.2rem;color:rgba(255,255,255,.28);margin-top:2.4rem;font-family:'JetBrains Mono',monospace;position:relative}
+
+/* FOOTER */
+.footer{border-top:1px solid rgba(255,255,255,.05);padding:7rem 5rem 5rem;position:relative;z-index:1}
+.footer-grid{max-width:120rem;margin:0 auto;display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:5rem}
+.f-brand{display:flex;align-items:center;gap:1rem;margin-bottom:1.8rem}
+.f-brand-name{font-size:1.7rem;font-weight:800;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.f-brand-fin{font-size:.88rem;font-weight:600;letter-spacing:.14em;color:var(--mint);font-family:'JetBrains Mono',monospace;display:block;line-height:1}
+.f-tagline{font-size:1.3rem;color:rgba(255,255,255,.35);line-height:1.65;max-width:26rem;margin-bottom:2.4rem}
+.f-badges{display:flex;gap:1rem;flex-wrap:wrap}
+.f-badge{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:.6rem;padding:.45rem 1rem;font-size:1.05rem;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;letter-spacing:.05em}
+.f-col-h{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,.55);margin-bottom:1.8rem}
+.f-link{display:block;font-size:1.35rem;color:rgba(255,255,255,.4);text-decoration:none;padding:.55rem 0;transition:color .2s}
+.f-link:hover{color:rgba(255,255,255,.82)}
+.footer-bot{max-width:120rem;margin:5rem auto 0;padding-top:3rem;border-top:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.6rem}
+.f-copy{font-size:1.2rem;color:rgba(255,255,255,.2);font-family:'JetBrains Mono',monospace}
+.f-legal{display:flex;gap:2.4rem}
+.f-legal a{font-size:1.2rem;color:rgba(255,255,255,.22);text-decoration:none;transition:color .2s}
+.f-legal a:hover{color:rgba(52,211,153,.6)}
+
+/* LIGHT MODE */
+[data-theme="light"] body{background:#edf0f5;color:#0a0d10}
+[data-theme="light"] .orb-1{background:radial-gradient(circle,rgba(52,211,153,.06),transparent 70%)}
+[data-theme="light"] .orb-2{background:radial-gradient(circle,rgba(79,70,229,.05),transparent 70%)}
+[data-theme="light"] .nav{background:rgba(237,240,245,.9)}
+[data-theme="light"] .nav-link{color:rgba(10,13,16,.55)}
+[data-theme="light"] .nav-link:hover{color:#0a0d10;background:rgba(0,0,0,.04)}
+[data-theme="light"] .hero-h,[data-theme="light"] .s-h2,[data-theme="light"] .pb-h,[data-theme="light"] .step-h,[data-theme="light"] .cta-h,[data-theme="light"] .pain-title,[data-theme="light"] .solve-title,[data-theme="light"] .testi-nm,[data-theme="light"] .price-val{color:#0a0d10}
+[data-theme="light"] .hero-sub{color:rgba(10,13,16,.52)}
+[data-theme="light"] .hero-trust{color:rgba(10,13,16,.38)}
+[data-theme="light"] .btn-ghost{color:rgba(10,13,16,.65);border-color:rgba(0,0,0,.14)}
+[data-theme="light"] .btn-ghost:hover{color:#0a0d10;border-color:rgba(0,0,0,.28);background:rgba(0,0,0,.03)}
+[data-theme="light"] .term-card{background:rgba(10,16,35,.94)}
+[data-theme="light"] .fc{background:rgba(10,16,35,.92)}
+[data-theme="light"] .bank-strip{border-color:rgba(0,0,0,.06);background:rgba(0,0,0,.02)}
+[data-theme="light"] .bank-strip::before{background:linear-gradient(90deg,#edf0f5,transparent)}
+[data-theme="light"] .bank-strip::after{background:linear-gradient(-90deg,#edf0f5,transparent)}
+[data-theme="light"] .s-p{color:rgba(10,13,16,.5)}
+[data-theme="light"] .stat-c{background:rgba(255,255,255,.7);border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .stat-l{color:rgba(10,13,16,.45)}
+[data-theme="light"] .pain-card{background:rgba(255,255,255,.65);border-color:rgba(223,62,62,.15)}
+[data-theme="light"] .pain-desc{color:rgba(10,13,16,.5)}
+[data-theme="light"] .solve-card{background:rgba(255,255,255,.65);border-color:rgba(52,211,153,.18)}
+[data-theme="light"] .solve-desc{color:rgba(10,13,16,.5)}
+[data-theme="light"] .steps-row::before{background:linear-gradient(90deg,transparent,rgba(52,211,153,.2),rgba(52,211,153,.2),transparent)}
+[data-theme="light"] .step-p{color:rgba(10,13,16,.48)}
+[data-theme="light"] .pb-p{color:rgba(10,13,16,.52)}
+[data-theme="light"] .pb-feats li{color:rgba(10,13,16,.62)}
+[data-theme="light"] .pb-visual{background:rgba(10,16,35,.9);border-color:rgba(52,211,153,.15)}
+[data-theme="light"] .testi{background:rgba(255,255,255,.72);border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .testi-q{color:rgba(10,13,16,.58)}
+[data-theme="light"] .testi-q .hl{color:rgba(10,13,16,.9)}
+[data-theme="light"] .testi-rl{color:rgba(10,13,16,.4)}
+[data-theme="light"] .testi-metric-label{color:rgba(10,13,16,.38)}
+[data-theme="light"] .price-c{background:rgba(255,255,255,.75);border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .price-c.pop{background:rgba(255,255,255,.92);border-color:rgba(52,211,153,.3)}
+[data-theme="light"] .price-desc{color:rgba(10,13,16,.52)}
+[data-theme="light"] .price-per{color:rgba(10,13,16,.4)}
+[data-theme="light"] .price-name{color:rgba(10,13,16,.4)}
+[data-theme="light"] .price-val .cur{color:rgba(10,13,16,.35)}
+[data-theme="light"] .price-btn.free{background:rgba(0,0,0,.06);color:rgba(10,13,16,.7);border-color:rgba(0,0,0,.12)}
+[data-theme="light"] .price-footer{color:rgba(10,13,16,.35)}
+[data-theme="light"] .cta-box{background:linear-gradient(155deg,rgba(52,211,153,.06),rgba(79,70,229,.04));border-color:rgba(52,211,153,.16)}
+[data-theme="light"] .cta-p{color:rgba(10,13,16,.52)}
+[data-theme="light"] .cta-note{color:rgba(10,13,16,.3)}
+[data-theme="light"] .footer{background:#e5e9ef;border-color:rgba(0,0,0,.07)}
+[data-theme="light"] .f-tagline{color:rgba(10,13,16,.42)}
+[data-theme="light"] .f-badge{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.08);color:rgba(10,13,16,.32)}
+[data-theme="light"] .f-link{color:rgba(10,13,16,.42)}
+[data-theme="light"] .f-link:hover{color:rgba(10,13,16,.82)}
+[data-theme="light"] .footer-bot{border-color:rgba(0,0,0,.07)}
+[data-theme="light"] .f-copy{color:rgba(10,13,16,.25)}
+[data-theme="light"] .f-legal a{color:rgba(10,13,16,.28)}
+[data-theme="light"] .f-brand-name{color:#0a0d10}
+
+@media(max-width:1200px){.hero{grid-template-columns:1fr;max-width:72rem;text-align:center}.hero-sub{max-width:100%}.hero-cta{justify-content:center}.hero-trust{justify-content:center}.hero-right{display:none}}
+@media(max-width:1000px){.stats-grid{grid-template-columns:1fr 1fr}.pain-cards,.solve-cards,.testi-grid,.price-grid{grid-template-columns:1fr}.steps-row{grid-template-columns:1fr;gap:4rem}.steps-row::before{display:none}.pillar-block{grid-template-columns:1fr;gap:4rem}.pillar-block.flip .pb-text,.pillar-block.flip .pb-visual{order:unset}.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.nav{padding:0 2.4rem}.nav-center{display:none}.menu-btn{display:flex}.s-wrap{padding:0 2.4rem}.hero{padding:9rem 2.4rem 5rem}.cta-sec{padding:6rem 2.4rem 10rem}.cta-box{padding:5rem 3rem}.footer{padding:5rem 2.4rem 4rem}.footer-grid{grid-template-columns:1fr}.hero-cta{flex-direction:column;align-items:stretch}.btn-primary,.btn-ghost{text-align:center;justify-content:center}.pillar-block{padding:4rem 2.4rem}}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <svg width="28" height="32" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><div class="logo-name">Guardrail</div><span class="logo-fin">Financial</span></div>
+  </a>
+  <div class="nav-center">
+    <a href="features.html" class="nav-link">Features</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="blog.html" class="nav-link">Blog</a>
+    <a href="faq.html" class="nav-link">FAQ</a>
+  </div>
+  <div class="nav-r">
+    <button class="theme-btn" onclick="toggleTheme()"><span id="themeIco">🌙</span></button>
+    <a href="login.html" class="btn-nav-cta">Sign In →</a>
+    <button class="menu-btn" onclick="toggleMenu()">
+      <div class="ham"><span></span><span></span><span></span></div>Menu
+    </button>
+    <div class="dropdown" id="dd">
+      <a href="login.html" class="dd-item dd-cta">→ Sign In</a>
+      <a href="features.html" class="dd-item">⚡ Features</a>
+      <a href="pricing.html" class="dd-item">💳 Pricing</a>
+      <a href="blog.html" class="dd-item">📰 Blog</a>
+      <a href="faq.html" class="dd-item">💬 FAQ</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-badge"><span class="bdot"></span>Trusted by 4,200+ Nigerian businesses</div>
+    <h1 class="hero-h">
+      Your books.<br>
+      <span class="ac">Perfectly</span>
+      balanced.
+    </h1>
+    <p class="hero-sub">
+      Drop in any bank statement. Guardrail cleans the mess, enforces <strong>∑ Debits = ∑ Credits</strong>, catches every variance, and hands you a <strong>FIRS-ready audit trail</strong> in under 14 seconds.
+    </p>
+    <div class="hero-cta">
+      <a href="login.html" class="btn-primary">Start Free Audit →</a>
+      <a href="dashboard.html" class="btn-ghost">Preview Dashboard</a>
+    </div>
+    <div class="hero-trust">
+      <span class="trust-item">Free forever plan</span>
+      <span class="trust-item">No credit card</span>
+      <span class="trust-item">FIRS-compliant</span>
+      <span class="trust-item">SOC 2 · ISO 27001</span>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div style="position:relative">
+      <div class="term-card">
+        <div class="term-scanline"></div>
+        <div class="term-bar">
+          <div class="td" style="background:#ff5f57"></div>
+          <div class="td" style="background:#febc2e"></div>
+          <div class="td" style="background:#28c840"></div>
+          <span class="term-title">guardrail · live audit</span>
+        </div>
+        <div class="term-lines" id="heroTermLines"></div>
+        <div class="term-progress" id="heroProgress"><div class="term-progress-fill" id="heroBar"></div></div>
+        <div class="term-result" id="heroResult">
+          <span>✓</span>
+          <span>Audit complete in 13.8s — 0 errors · FIRS-ready PDF exported</span>
+        </div>
+      </div>
+
+      <div class="float-cards">
+        <div class="fc fc-1">
+          <div class="fc-label"><span class="fc-dot"></span>Financial Health</div>
+          <div class="fc-val green">91 / 100</div>
+        </div>
+        <div class="fc fc-2">
+          <div class="fc-label">Net Revenue MTD</div>
+          <div class="fc-val indigo">₦8.34M</div>
+        </div>
+        <div class="fc fc-3">
+          <div class="fc-label"><span class="fc-dot gold"></span>Active Alerts</div>
+          <div class="fc-val gold">2 flags</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BANK STRIP -->
+<div class="bank-strip">
+  <div class="bank-track" id="bankTrack">
+    <span class="bank-item"><span class="bank-dot"></span>GTBank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Zenith Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Access Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>UBA</span>
+    <span class="bank-item"><span class="bank-dot"></span>First Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Opay</span>
+    <span class="bank-item"><span class="bank-dot"></span>Moniepoint</span>
+    <span class="bank-item"><span class="bank-dot"></span>Kuda Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Sterling Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Fidelity Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Stanbic IBTC</span>
+    <span class="bank-item"><span class="bank-dot"></span>PalmPay</span>
+    <span class="bank-item"><span class="bank-dot"></span>Xero</span>
+    <span class="bank-item"><span class="bank-dot"></span>Google Sheets</span>
+    <span class="bank-item"><span class="bank-dot"></span>GTBank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Zenith Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Access Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>UBA</span>
+    <span class="bank-item"><span class="bank-dot"></span>First Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Opay</span>
+    <span class="bank-item"><span class="bank-dot"></span>Moniepoint</span>
+    <span class="bank-item"><span class="bank-dot"></span>Kuda Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Sterling Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Fidelity Bank</span>
+    <span class="bank-item"><span class="bank-dot"></span>Stanbic IBTC</span>
+    <span class="bank-item"><span class="bank-dot"></span>PalmPay</span>
+    <span class="bank-item"><span class="bank-dot"></span>Xero</span>
+    <span class="bank-item"><span class="bank-dot"></span>Google Sheets</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<section class="stats-sec section">
+  <div class="s-wrap">
+    <div class="stats-grid">
+      <div class="stat-c reveal">
+        <div class="stat-n" data-target="14" data-suffix="s" data-label="avg">14s</div>
+        <div class="stat-l">Average full-ledger audit time for up to 2,000 transactions</div>
+      </div>
+      <div class="stat-c reveal delay-1">
+        <div class="stat-n" data-target="100" data-suffix="%" data-label="pct">100%</div>
+        <div class="stat-l">Ledger balance verified before any report is exported</div>
+      </div>
+      <div class="stat-c reveal delay-2">
+        <div class="stat-n" data-target="4200" data-suffix="+" data-label="biz">4,200+</div>
+        <div class="stat-l">Nigerian SMEs and freelancers running clean books</div>
+      </div>
+      <div class="stat-c reveal delay-3">
+        <div class="stat-n">₦0</div>
+        <div class="stat-l">Undetected financial leaks in audited ledgers</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIN → SOLUTION -->
+<section class="pain-sec section">
+  <div class="s-wrap">
+    <div class="pain-intro">
+      <div>
+        <div class="s-label reveal">The Problem</div>
+        <h2 class="s-h2 reveal delay-1">The setback every<br>Nigerian SME <span style="color:#f87171">knows.</span></h2>
+      </div>
+      <p class="s-p reveal delay-2" style="max-width:38rem">Manual reconciliation, FIRS deadlines, and undetected leaks are costing Nigerian businesses billions every year. Guardrail ends it.</p>
+    </div>
+
+    <div class="pain-cards">
+      <div class="pain-card reveal">
+        <div class="pain-icon">📋</div>
+        <div class="pain-n">72hrs</div>
+        <div class="pain-title">Manual Reconciliation</div>
+        <p class="pain-desc">A trained accountant needs 3 full days to reconcile a 6-month ledger. Errors get missed. Duplicates slip through. FIRS still asks questions.</p>
+      </div>
+      <div class="pain-card reveal delay-1">
+        <div class="pain-icon">🚨</div>
+        <div class="pain-n">₦680K</div>
+        <div class="pain-title">Average Annual Leak</div>
+        <p class="pain-desc">Nigerian SMEs lose an average of ₦680,000 per year to untracked petty cash, phantom expenses, and duplicate vendor payments that nobody catches.</p>
+      </div>
+      <div class="pain-card reveal delay-2">
+        <div class="pain-icon">⚠️</div>
+        <div class="pain-n">63%</div>
+        <div class="pain-title">FIRS Filing Errors</div>
+        <p class="pain-desc">63% of SME VAT filings contain at least one error traceable to unbalanced ledgers — leading to penalties, audit flags, and sleepless nights before April.</p>
+      </div>
+    </div>
+
+    <div class="pain-arrow">
+      <div class="arrow-line">
+        <span class="arrow-label">Guardrail changes this</span>
+        <span class="arrow-svg">↓</span>
+      </div>
+    </div>
+
+    <div class="solve-cards">
+      <div class="solve-card reveal">
+        <div class="pain-icon">⚡</div>
+        <div class="solve-n">13.8s</div>
+        <div class="solve-title">Full Audit in 14 Seconds</div>
+        <p class="solve-desc">Drop a CSV. Guardrail runs 847 transactions through a 14-point validation engine. Balanced, categorised, and FIRS-formatted. Done.</p>
+      </div>
+      <div class="solve-card reveal delay-1">
+        <div class="pain-icon">🛡️</div>
+        <div class="solve-n">₦0</div>
+        <div class="solve-title">Undetected Leaks</div>
+        <p class="solve-desc">Real-time alerts fire the moment any category breaches budget. Ghost transactions, duplicate petty cash, and phantom vendors get caught instantly.</p>
+      </div>
+      <div class="solve-card reveal delay-2">
+        <div class="pain-icon">✅</div>
+        <div class="solve-n">100%</div>
+        <div class="solve-title">FIRS-Compliant Reports</div>
+        <p class="solve-desc">Every audit exports a clean, balanced PDF formatted for FIRS e-filing — with correct VAT schedules at 7.5%, ready to submit without touching a spreadsheet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-sec section">
+  <div class="s-wrap">
+    <div class="s-label reveal">How It Works</div>
+    <h2 class="s-h2 reveal delay-1" style="margin-bottom:1rem">Three steps. <span class="ac">Zero spreadsheets.</span></h2>
+    <p class="s-p reveal delay-2">From messy bank export to clean, FIRS-ready ledger — no accounting knowledge required.</p>
+    <div class="steps-row">
+      <div class="step reveal">
+        <div class="step-num-wrap"><div class="step-num">01</div></div>
+        <div class="step-icon">📁</div>
+        <h3 class="step-h">Upload your data</h3>
+        <p class="step-p">CSV, Excel, or PDF from any Nigerian bank. No column mapping. No reformatting. Just drop and go.</p>
+      </div>
+      <div class="step reveal delay-2">
+        <div class="step-num-wrap"><div class="step-num">02</div></div>
+        <div class="step-icon">⚡</div>
+        <h3 class="step-h">Guardrail audits it</h3>
+        <p class="step-p">Duplicates removed. Missing categories inferred by AI. Every naira balanced. Variance alerts fired in under 14 seconds.</p>
+      </div>
+      <div class="step reveal delay-4">
+        <div class="step-num-wrap"><div class="step-num">03</div></div>
+        <div class="step-icon">📄</div>
+        <h3 class="step-h">Download your report</h3>
+        <p class="step-p">A clean, stamped FIRS-compliant PDF. Hand it to your accountant, your CFO, or file it directly — it's ready.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THREE PILLARS -->
+<section class="pillars-sec section">
+
+  <div class="pillar-block">
+    <div class="pb-text reveal-left">
+      <div class="pb-num">Pillar 01</div>
+      <span class="pb-icon">🔍</span>
+      <h2 class="pb-h">Audit &amp;<br><span class="ac">Data Cleaning</span></h2>
+      <p class="pb-p">Every import is run through a 14-point validation pipeline. Duplicates are detected across overlapping date ranges, missing fields are inferred using ML category matching, and the ledger is forced to balance before a single report is generated.</p>
+      <ul class="pb-feats">
+        <li>14-point transaction validation on every single import</li>
+        <li>Duplicate detection across overlapping date windows</li>
+        <li>AI-assisted category inference (80%+ accuracy, Nigerian context)</li>
+        <li>Currency normalisation — USD, GBP → NGN at live rates</li>
+        <li>∑ Debits = ∑ Credits enforced before any export</li>
+        <li>FIRS VAT schedule pre-populated at 7.5%</li>
+      </ul>
+    </div>
+    <div class="pb-visual reveal-right">
+      <div class="vis-bar"><div class="vd" style="background:#ff5f57"></div><div class="vd" style="background:#febc2e"></div><div class="vd" style="background:#28c840"></div></div>
+      <div class="vis-line dim">$ guardrail audit --file jan2026.csv --strict</div>
+      <div class="vis-line"><span class="kw">→ Parsing</span> <span class="val">847 transactions</span></div>
+      <div class="vis-line"><span class="kw">→ Deduplication</span> <span class="warn">3 duplicates removed</span></div>
+      <div class="vis-line"><span class="kw">→ Categorisation</span> <span class="val">844/844 matched (99.6%)</span></div>
+      <div class="vis-line"><span class="kw">→ VAT schedule</span> <span class="val">populated (7.5% FIRS)</span></div>
+      <div class="vis-line"><span class="kw">→ Balance check</span> <span class="val">∑D: ₦4,210,500 = ∑C: ₦4,210,500</span></div>
+      <div class="vis-line"><span class="kw">→ Audit score</span> <span class="val">98 / 100</span></div>
+      <div class="vis-result">✓ Audit complete in 13.8s · Export ready</div>
+    </div>
+  </div>
+
+  <div class="pillar-block flip">
+    <div class="pb-text reveal-right">
+      <div class="pb-num">Pillar 02</div>
+      <span class="pb-icon">📊</span>
+      <h2 class="pb-h">Expense<br><span class="ac">Auditing Engine</span></h2>
+      <p class="pb-p">Set policy thresholds and Guardrail fires real-time alerts the exact second any category breaches. Catch vendor overcharging, unreconciled petty cash, and ghost expenses before they compound into a full quarter of losses.</p>
+      <ul class="pb-feats">
+        <li>Per-category spending limits with real-time enforcement</li>
+        <li>Vendor pattern analysis — detect rate drift over time</li>
+        <li>Petty cash reconciliation with full approval trails</li>
+        <li>Ghost transaction detection via payee + amount hashing</li>
+        <li>Month-over-month variance alerts (% configurable)</li>
+        <li>Automated CFO summary email (daily/weekly)</li>
+      </ul>
+    </div>
+    <div class="pb-visual reveal-left">
+      <div class="vis-bar"><div class="vd" style="background:#ff5f57"></div><div class="vd" style="background:#febc2e"></div><div class="vd" style="background:#28c840"></div></div>
+      <div class="vis-line dim">EXPENSE MONITOR · LIVE · JUNE 2026</div>
+      <div class="vis-line"><span class="kw">Transport</span> <span class="val">₦42,000 / ₦50,000</span> <span class="dim">84%</span></div>
+      <div class="vis-line"><span class="kw">Marketing</span> <span class="val">₦188,000 / ₦200,000</span> <span class="dim">94%</span></div>
+      <div class="vis-line"><span class="warn">⚠ Supplies</span> <span class="warn">₦312,000 / ₦250,000</span> <span class="err">+25% over</span></div>
+      <div class="vis-line"><span class="err">🚨 Petty Cash</span> <span class="err">₦95,000 unreconciled</span></div>
+      <div class="vis-line"><span class="kw">Personnel</span> <span class="val">₦1.24M / ₦1.3M</span> <span class="dim">95%</span></div>
+      <div class="vis-result">🚨 2 alerts active · CFO notified 14:32 · Auto-report queued</div>
+    </div>
+  </div>
+
+  <div class="pillar-block">
+    <div class="pb-text reveal-left">
+      <div class="pb-num">Pillar 03</div>
+      <span class="pb-icon">🎯</span>
+      <h2 class="pb-h">Financial<br><span class="ac">Goal Tracking</span></h2>
+      <p class="pb-p">Link revenue targets, savings goals, and expense caps directly to your live ledger. Guardrail projects your end-of-quarter position from your current burn rate and alerts you the moment you're off track — not at month-end when it's too late.</p>
+      <ul class="pb-feats">
+        <li>Milestone-based revenue goals with live progress bars</li>
+        <li>End-of-period projection from real-time burn rate</li>
+        <li>Savings target tracker with automatic allocations</li>
+        <li>Capital expenditure planning with approval gates</li>
+        <li>Goal breach alerts (% deviation fully configurable)</li>
+        <li>Quarterly business review PDF auto-generated</li>
+      </ul>
+    </div>
+    <div class="pb-visual reveal-right">
+      <div class="vis-bar"><div class="vd" style="background:#ff5f57"></div><div class="vd" style="background:#febc2e"></div><div class="vd" style="background:#28c840"></div></div>
+      <div class="vis-line dim">Q2 2026 — GOAL DASHBOARD · 42 days left</div>
+      <div class="vis-line"><span class="kw">Revenue Target</span> <span class="val">₦12M</span></div>
+      <div class="vis-line"><span class="kw">Current</span> <span class="val">₦8,340,000</span> <span class="dim">(69.5%)</span></div>
+      <div class="vis-line" style="padding:.8rem 0">
+        <div style="background:rgba(255,255,255,.08);border-radius:.4rem;height:.8rem;overflow:hidden"><div style="background:var(--mint);width:69.5%;height:100%;border-radius:.4rem;transition:width .8s ease"></div></div>
+      </div>
+      <div class="vis-line"><span class="kw">Expense Ceiling</span> <span class="val">₦3.12M / ₦4M</span> <span class="dim">78%</span></div>
+      <div class="vis-line"><span class="warn">Emergency Fund</span> <span class="warn">₦2.1M / ₦3M</span> <span class="dim">70%</span></div>
+      <div class="vis-line"><span class="kw">Projected EOQ</span> <span class="val">₦11,820,000</span></div>
+      <div class="vis-result">⚠ On track · Projected ₦180K short of target</div>
+    </div>
+  </div>
+
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testi-sec section">
+  <div class="s-wrap">
+    <div class="s-label reveal">Social Proof</div>
+    <h2 class="s-h2 reveal delay-1">Nigerian businesses trust<br>their books to <span class="ac">Guardrail.</span></h2>
+    <div class="testi-grid">
+      <div class="testi reveal">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-metric">₦340K</div>
+        <div class="testi-metric-label">Recovered in 19 seconds</div>
+        <p class="testi-q">"Guardrail caught <span class="hl">₦340,000 in untracked petty cash</span> the first time I uploaded our books. My accountant was embarrassed. I was absolutely delighted."</p>
+        <div class="testi-a">
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--mint),var(--indigo))">C</div>
+          <div><div class="testi-nm">Chukwuemeka Obi</div><div class="testi-rl">CEO, Obi Manufacturing Ltd · Lagos</div></div>
+        </div>
+      </div>
+      <div class="testi reveal delay-2">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-metric">2wks → 40min</div>
+        <div class="testi-metric-label">Quarterly reconciliation time</div>
+        <p class="testi-q">"We run three SPVs with separate accounts. Before Guardrail, reconciliation took two weeks every quarter. <span class="hl">Now it takes 40 minutes.</span> That's time I spend growing the business."</p>
+        <div class="testi-a">
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--indigo),#7c3aed)">A</div>
+          <div><div class="testi-nm">Adeola Adeleke</div><div class="testi-rl">CFO, Adeleke Properties · Abuja</div></div>
+        </div>
+      </div>
+      <div class="testi reveal delay-4">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-metric">₦180K</div>
+        <div class="testi-metric-label">In FIRS penalties avoided</div>
+        <p class="testi-q">"As a freelancer handling 12 clients I was always late on VAT. <span class="hl">Guardrail's FIRS report saved me ₦180,000 in penalties</span> last year alone. It paid for itself in March."</p>
+        <div class="testi-a">
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--gold),#f97316)">T</div>
+          <div><div class="testi-nm">Tolu Adesanya</div><div class="testi-rl">Freelance Creative Director · Lagos</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="price-sec section">
+  <div class="s-wrap">
+    <div class="s-label reveal">Pricing</div>
+    <h2 class="s-h2 reveal delay-1">Simple pricing.<br><span class="ac">Zero surprises.</span></h2>
+    <p class="s-p reveal delay-2" style="margin-top:1.2rem;margin-bottom:0">Start free. Upgrade when your books demand it. 30-day money-back guarantee on all paid plans.</p>
+    <div class="price-grid">
+      <div class="price-c reveal">
+        <div class="price-name">Free</div>
+        <div class="price-val"><span class="cur">₦</span>0</div>
+        <div class="price-per">forever, no credit card</div>
+        <p class="price-desc">For freelancers and sole traders who want to see what automated auditing feels like.</p>
+        <a href="login.html" class="price-btn free">Get Started Free</a>
+      </div>
+      <div class="price-c pop reveal delay-2">
+        <div class="pop-badge">Most Popular</div>
+        <div class="price-name">Pro</div>
+        <div class="price-val"><span class="cur">₦</span>4,999</div>
+        <div class="price-per">per month</div>
+        <p class="price-desc">Unlimited transactions, real-time alerts, FIRS-ready reports, and 3 team seats.</p>
+        <a href="login.html" class="price-btn pro">Start Pro Trial →</a>
+      </div>
+      <div class="price-c reveal delay-4">
+        <div class="price-name">Business</div>
+        <div class="price-val"><span class="cur">₦</span>14,999</div>
+        <div class="price-per">per month</div>
+        <p class="price-desc">Multi-entity consolidation, dedicated account manager, and full API access.</p>
+        <a href="login.html" class="price-btn biz">Start Business Trial →</a>
+      </div>
+    </div>
+    <p class="price-footer reveal">Annual billing saves 20% · <a href="pricing.html">Compare all features →</a></p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-sec section">
+  <div class="cta-box reveal">
+    <h2 class="cta-h">See Guardrail work<br>on <span class="ac">your</span> actual books.</h2>
+    <p class="cta-p">Upload any CSV from any Nigerian bank. We'll run a live audit in under 20 seconds — no credit card, no setup friction. Just clean books.</p>
+    <div class="cta-btns">
+      <a href="login.html" class="btn-primary">Start Free Audit →</a>
+      <a href="dashboard.html" class="btn-ghost">Preview Dashboard</a>
+    </div>
+    <p class="cta-note">Free forever plan available · FIRS-compliant · SOC 2 · ISO 27001 · Lagos, Nigeria</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <div class="f-brand">
+        <svg width="24" height="28" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div><div class="f-brand-name">Guardrail</div><div class="f-brand-fin">Financial</div></div>
+      </div>
+      <p class="f-tagline">Automated financial auditing, real-time variance detection, and FIRS-compliant reporting — built for Nigerian SMEs and freelancers who refuse to leave money on the table.</p>
+      <div class="f-badges">
+        <span class="f-badge">SOC 2</span>
+        <span class="f-badge">ISO 27001</span>
+        <span class="f-badge">FIRS</span>
+        <span class="f-badge">256-bit AES</span>
+      </div>
+    </div>
+    <div>
+      <div class="f-col-h">Product</div>
+      <a href="features.html" class="f-link">Features</a>
+      <a href="pricing.html" class="f-link">Pricing</a>
+      <a href="dashboard.html" class="f-link">Dashboard Preview</a>
+      <a href="login.html" class="f-link">Sign In</a>
+    </div>
+    <div>
+      <div class="f-col-h">Resources</div>
+      <a href="blog.html" class="f-link">Blog</a>
+      <a href="faq.html" class="f-link">FAQ</a>
+      <a href="mailto:support@guardrailfinancial.ng" class="f-link">Support</a>
+      <a href="mailto:enterprise@guardrailfinancial.ng" class="f-link">Enterprise</a>
+    </div>
+    <div>
+      <div class="f-col-h">Legal</div>
+      <a href="#" class="f-link">Privacy Policy</a>
+      <a href="#" class="f-link">Terms of Service</a>
+      <a href="#" class="f-link">Data Processing</a>
+      <a href="#" class="f-link">Cookie Policy</a>
+    </div>
+  </div>
+  <div class="footer-bot">
+    <div class="f-copy">© 2026 Guardrail Financial · Lagos, Nigeria · All rights reserved</div>
+    <div class="f-legal">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="mailto:support@guardrailfinancial.ng">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── THEME ── */
+function toggleTheme(){
+  const h=document.documentElement;
+  const n=h.dataset.theme==='light'?'dark':'light';
+  h.dataset.theme=n;
+  document.getElementById('themeIco').textContent=n==='light'?'☀️':'🌙';
+  localStorage.setItem('gr-theme',n);
+}
+(function(){
+  const t=localStorage.getItem('gr-theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{
+    const i=document.getElementById('themeIco');
+    if(i) i.textContent=t==='light'?'☀️':'🌙';
+  });
+})();
+
+/* ── NAV MENU ── */
+let menuOpen=false;
+function toggleMenu(){
+  menuOpen=!menuOpen;
+  document.getElementById('dd').classList.toggle('open',menuOpen);
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.nav-r')){menuOpen=false;document.getElementById('dd').classList.remove('open');}
+});
+
+/* ── SCROLL REVEAL ── */
+const revealObserver=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.classList.add('visible');
+      if(e.target.querySelector('[data-target]')){
+        e.target.querySelectorAll('[data-target]').forEach(el=>animateCounter(el));
+      }
+      revealObserver.unobserve(e.target);
+    }
+  });
+},{threshold:0.12,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right').forEach(el=>revealObserver.observe(el));
+
+/* ── COUNTER ANIMATION ── */
+function animateCounter(el){
+  const target=parseFloat(el.dataset.target);
+  if(!target) return;
+  const suffix=el.dataset.suffix||'';
+  const duration=1800;
+  const start=performance.now();
+  function tick(now){
+    const t=Math.min((now-start)/duration,1);
+    const eased=1-Math.pow(1-t,3);
+    const val=Math.floor(target*eased);
+    el.textContent=(val>=1000?val.toLocaleString():val)+suffix;
+    if(t<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ── HERO TERMINAL ANIMATION ── */
+const auditLines=[
+  {html:'<span class="dim">$ guardrail audit --file q2_2026.csv --strict</span>',delay:300},
+  {html:'<span class="kw">→ Parsing</span> <span class="val">1,204 transactions…</span>',delay:700},
+  {html:'<span class="kw">→ Deduplication</span> <span class="warn">4 duplicates removed</span>',delay:1100},
+  {html:'<span class="kw">→ Categorisation</span> <span class="val">1,200 / 1,200 matched (99.7%)</span>',delay:1500},
+  {html:'<span class="kw">→ VAT schedule</span> <span class="val">populated at 7.5% (FIRS)</span>',delay:1900},
+  {html:'<span class="kw">→ Balance check</span> <span class="val">∑D: ₦6.82M = ∑C: ₦6.82M ✓</span>',delay:2300},
+  {html:'<span class="kw">→ Variance alerts</span> <span class="warn">3 threshold flags fired</span>',delay:2600},
+  {html:'<span class="kw">→ Audit score</span> <span class="val">94 / 100 · FIRS-ready</span>',delay:2900},
+];
+
+function runTerminal(){
+  const container=document.getElementById('heroTermLines');
+  const bar=document.getElementById('heroBar');
+  const result=document.getElementById('heroResult');
+  if(!container) return;
+  container.innerHTML='';
+  bar.style.width='0%';
+  result.classList.remove('show');
+  const cursor=document.createElement('div');
+  cursor.className='tl';
+  cursor.innerHTML='<span class="term-cursor"></span>';
+  container.appendChild(cursor);
+  let timers=[];
+  auditLines.forEach((line,i)=>{
+    const t=setTimeout(()=>{
+      container.removeChild(cursor);
+      const div=document.createElement('div');
+      div.className='tl';
+      div.innerHTML=line.html;
+      div.style.animationDelay='0s';
+      container.appendChild(div);
+      if(i<auditLines.length-1) container.appendChild(cursor);
+      const pct=Math.round((i+1)/auditLines.length*100);
+      bar.style.width=pct+'%';
+    },line.delay);
+    timers.push(t);
+  });
+  const doneT=setTimeout(()=>{
+    result.classList.add('show');
+  },3400);
+  timers.push(doneT);
+  const resetT=setTimeout(()=>{runTerminal();},7000);
+  timers.push(resetT);
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(runTerminal,600));
+</script>
+</body>
+</html>

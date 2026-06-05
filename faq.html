@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ — Guardrail Financial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--gold:#febc2e}
+*{box-sizing:border-box;margin:0;padding:0}html{font-size:10px;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--slate);color:#fff;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(52,211,153,.022)1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.022)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:6.8rem;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(2,6,23,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(52,211,153,.08)}
+.nav-logo{display:flex;align-items:center;gap:.9rem;text-decoration:none}
+.logo-name{font-size:1.7rem;font-weight:800;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.logo-fin{font-size:.9rem;font-weight:600;letter-spacing:.14em;color:var(--mint);font-family:'JetBrains Mono',monospace;display:block;line-height:1}
+.nav-r{display:flex;align-items:center;gap:1rem;position:relative}
+.theme-btn{width:3.8rem;height:3.8rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.12);background:transparent;cursor:pointer;font-size:1.6rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.menu-btn{display:flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:.8rem;padding:.8rem 1.6rem;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:600;color:rgba(255,255,255,.8);transition:all .2s}
+.ham{display:flex;flex-direction:column;gap:4px;width:18px}
+.ham span{display:block;height:2px;background:var(--mint);border-radius:2px}
+.dropdown{position:absolute;top:calc(100% + 1rem);right:0;background:rgba(15,23,42,.98);backdrop-filter:blur(24px);border:1px solid rgba(52,211,153,.15);border-radius:1.4rem;padding:.6rem;min-width:19rem;opacity:0;pointer-events:none;transform:translateY(-8px);transition:all .25s}
+.dropdown.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.dd-item{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.4rem;border-radius:1rem;font-size:1.4rem;font-weight:500;color:rgba(255,255,255,.7);text-decoration:none;transition:all .2s}
+.dd-item:hover{background:rgba(52,211,153,.08);color:#fff}
+.dd-login{background:var(--mint);color:#020617!important;font-weight:700;margin-bottom:.4rem}
+
+/* HERO */
+.faq-hero{padding:14rem 4rem 8rem;text-align:center;position:relative;z-index:1}
+.hero-label{display:inline-flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.22);border-radius:10rem;padding:.65rem 1.6rem;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mint);margin-bottom:2.8rem}
+.fh{font-size:clamp(4.4rem,7vw,8rem);font-weight:900;letter-spacing:-.04em;line-height:1.0;color:#fff;margin-bottom:1.6rem}
+.fh .ac{color:var(--mint)}
+.fp{font-size:1.7rem;color:rgba(255,255,255,.48);max-width:56rem;margin:0 auto 4.8rem}
+.search-wrap{max-width:54rem;margin:0 auto;position:relative}
+.search-in{width:100%;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:1.2rem;padding:1.6rem 1.8rem 1.6rem 5rem;font-family:'Inter',sans-serif;font-size:1.55rem;color:#fff;outline:none;transition:all .2s}
+.search-in::placeholder{color:rgba(255,255,255,.3)}
+.search-in:focus{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.04);box-shadow:0 0 0 3px rgba(52,211,153,.08)}
+.search-ico{position:absolute;left:1.8rem;top:50%;transform:translateY(-50%);font-size:1.6rem;color:rgba(255,255,255,.3);pointer-events:none}
+
+/* CATS */
+.faq-cats{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;padding:0 4rem;max-width:90rem;margin:0 auto 7rem;position:relative;z-index:1}
+.fcat{padding:.8rem 2rem;border-radius:10rem;font-size:1.35rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.5);font-family:'Inter',sans-serif;transition:all .2s}
+.fcat.on{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:var(--mint)}
+.fcat:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.8)}
+
+/* ACCORDION */
+.faq-body{max-width:82rem;margin:0 auto;padding:0 4rem 10rem;position:relative;z-index:1}
+.faq-section{margin-bottom:5.6rem}
+.fs-title{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,.7);margin-bottom:2.4rem;padding-bottom:1.2rem;border-bottom:1px solid rgba(52,211,153,.12)}
+.faq-item{border:1px solid rgba(255,255,255,.07);border-radius:1.4rem;margin-bottom:1rem;overflow:hidden;transition:all .3s}
+.faq-item.open{border-color:rgba(52,211,153,.18);background:rgba(52,211,153,.03)}
+.faq-q{display:flex;align-items:center;justify-content:space-between;padding:2.2rem 2.4rem;cursor:pointer;font-size:1.5rem;font-weight:600;color:rgba(255,255,255,.85);gap:2rem;user-select:none}
+.faq-q:hover{color:#fff}
+.faq-ico{font-size:1.4rem;color:rgba(52,211,153,.7);transition:transform .3s;flex-shrink:0;font-style:normal}
+.faq-item.open .faq-ico{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease}
+.faq-item.open .faq-a{max-height:50rem}
+.faq-a-inner{padding:0 2.4rem 2.4rem;font-size:1.45rem;color:rgba(255,255,255,.52);line-height:1.75}
+.faq-a-inner a{color:var(--mint);text-decoration:none}
+.faq-a-inner a:hover{text-decoration:underline}
+.helpful{display:flex;align-items:center;gap:1.2rem;margin-top:1.8rem;padding-top:1.6rem;border-top:1px solid rgba(255,255,255,.06);font-size:1.25rem;color:rgba(255,255,255,.3)}
+.helpful button{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:.6rem;padding:.4rem 1rem;font-size:1.25rem;cursor:pointer;color:rgba(255,255,255,.5);transition:all .2s}
+.helpful button:hover{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3);color:var(--mint)}
+
+/* CONTACT */
+.contact-sec{max-width:82rem;margin:0 auto;padding:0 4rem 14rem;position:relative;z-index:1}
+.contact-box{background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(79,70,229,.05));border:1px solid rgba(52,211,153,.15);border-radius:2.4rem;padding:5.6rem;display:grid;grid-template-columns:1fr 1fr 1fr;gap:3rem}
+.cc{text-align:center;padding:2.4rem;background:rgba(255,255,255,.03);border-radius:1.4rem;border:1px solid rgba(255,255,255,.06);transition:all .3s}
+.cc:hover{border-color:rgba(52,211,153,.15);transform:translateY(-3px)}
+.cc-icon{font-size:3.2rem;margin-bottom:1.4rem}
+.cc-h{font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:.8rem}
+.cc-p{font-size:1.35rem;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:2rem}
+.cc-btn{display:inline-block;font-size:1.35rem;font-weight:700;padding:.9rem 2rem;border-radius:.9rem;text-decoration:none;transition:all .2s;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.cc-btn.mint{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--mint)}
+.cc-btn.mint:hover{background:rgba(52,211,153,.2)}
+.cc-btn.indigo{background:rgba(79,70,229,.12);border:1px solid rgba(79,70,229,.25);color:rgba(165,180,252,.9)}
+.cc-btn.indigo:hover{background:rgba(79,70,229,.2)}
+
+[data-theme="light"] body{background:#edf0f5;color:#0a0d10}
+[data-theme="light"] .nav{background:rgba(237,240,245,.92)}
+[data-theme="light"] .fh{color:#0a0d10}
+[data-theme="light"] .faq-item{border-color:rgba(0,0,0,.08);background:rgba(255,255,255,.6)}
+[data-theme="light"] .faq-item.open{background:rgba(52,211,153,.04)}
+[data-theme="light"] .faq-q{color:rgba(10,13,16,.85)}
+[data-theme="light"] .faq-a-inner{color:rgba(10,13,16,.55)}
+[data-theme="light"] .search-in{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#0a0d10}
+[data-theme="light"] .cc{background:rgba(255,255,255,.8)}
+[data-theme="light"] .fp{color:rgba(10,13,16,.52)}
+[data-theme="light"] .fh{color:#0a0d10}
+[data-theme="light"] .helpful{color:rgba(10,13,16,.38)}
+[data-theme="light"] .helpful button{color:rgba(10,13,16,.5);background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.1)}
+[data-theme="light"] .helpful button:hover{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.25);color:var(--mint)}
+[data-theme="light"] .cc-p{color:rgba(10,13,16,.48)}
+[data-theme="light"] .cc-h{color:#0a0d10}
+[data-theme="light"] .contact-box{background:linear-gradient(135deg,rgba(52,211,153,.04),rgba(79,70,229,.03));border-color:rgba(52,211,153,.12)}
+[data-theme="light"] .fcat{color:rgba(10,13,16,.52);border-color:rgba(0,0,0,.12)}
+[data-theme="light"] .fcat.on{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+[data-theme="light"] .fcat:hover{border-color:rgba(0,0,0,.22);color:rgba(10,13,16,.8)}
+[data-theme="light"] .fs-title{color:rgba(52,211,153,.65);border-color:rgba(52,211,153,.12)}
+[data-theme="light"] .search-in{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#0a0d10}
+
+@media(max-width:760px){.contact-box{grid-template-columns:1fr}}
+@media(max-width:600px){.nav{padding:0 2rem}.faq-hero,.faq-cats,.faq-body,.contact-sec{padding-left:2rem;padding-right:2rem}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <svg width="28" height="32" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><div class="logo-name">Guardrail</div><span class="logo-fin">Financial</span></div>
+  </a>
+  <div class="nav-r">
+    <button class="theme-btn" onclick="toggleTheme()"><span id="themeIco">🌙</span></button>
+    <button class="menu-btn" onclick="toggleMenu()"><div class="ham"><span></span><span></span><span></span></div>Menu</button>
+    <div class="dropdown" id="dd">
+      <a href="login.html" class="dd-item dd-login">→ Sign In</a>
+      <a href="features.html" class="dd-item">⚡ Features</a>
+      <a href="pricing.html" class="dd-item">💳 Pricing</a>
+      <a href="blog.html" class="dd-item">📰 Blog</a>
+      <a href="faq.html" class="dd-item">💬 FAQ</a>
+    </div>
+  </div>
+</nav>
+
+<section class="faq-hero">
+  <div class="hero-label">Help Centre</div>
+  <h1 class="fh">Got <span class="ac">questions?</span><br>We've got answers.</h1>
+  <p class="fp">Everything you need to know about Guardrail, Nigerian financial compliance, and automated auditing. Can't find what you're looking for? <a href="#contact" style="color:var(--mint)">Talk to us →</a></p>
+  <div class="search-wrap">
+    <span class="search-ico">🔍</span>
+    <input class="search-in" type="text" placeholder="Search 40+ answers..." oninput="searchFaq(this.value)">
+  </div>
+</section>
+
+<div class="faq-cats">
+  <button class="fcat on" onclick="filterFaq('all',this)">All Questions</button>
+  <button class="fcat" onclick="filterFaq('general',this)">General</button>
+  <button class="fcat" onclick="filterFaq('security',this)">Security & Privacy</button>
+  <button class="fcat" onclick="filterFaq('pricing',this)">Pricing & Billing</button>
+  <button class="fcat" onclick="filterFaq('integrations',this)">Integrations</button>
+  <button class="fcat" onclick="filterFaq('technical',this)">Technical</button>
+</div>
+
+<div class="faq-body" id="faqBody">
+
+  <div class="faq-section" data-cat="general">
+    <div class="fs-title">General</div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What exactly does Guardrail do?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Guardrail is an automated financial auditing platform built specifically for Nigerian SMEs and freelancers. It takes raw transaction data from any source — CSV exports from your bank, Excel files from your accountant, or direct Xero sync — and runs it through three core engines: Data Cleaning & Audit (verifies every transaction, removes duplicates, enforces ∑ Debits = ∑ Credits), Expense Auditing (monitors spending categories in real-time against your defined limits), and Goal Tracking (projects your end-of-period financial position and alerts you when you're off track). The result is a FIRS-compliant audit trail that would take a human accountant days, delivered in under 14 seconds.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Who is Guardrail built for?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Guardrail is designed for: <strong style="color:#fff">Nigerian SMEs</strong> with 5–500 employees who need automated compliance without hiring a full-time CFO; <strong style="color:#fff">freelancers and sole traders</strong> who want to stay FIRS-compliant without becoming accountants; <strong style="color:#fff">finance teams</strong> at mid-size companies who want to replace manual spreadsheet reconciliation with real-time alerts; and <strong style="color:#fff">accountants and CFO consultants</strong> who manage multiple client books and want audit trails generated automatically. If you process more than 50 transactions per month and care about where your money actually goes, Guardrail is for you.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is Guardrail FIRS-compliant?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Yes. Every audit report Guardrail generates is formatted to meet FIRS (Federal Inland Revenue Service) requirements, including: proper VAT schedule formatting (7.5% VAT under the Finance Act 2024 amendments), transaction categorisation aligned with FIRS schedule requirements, debit/credit balance verification, and complete audit trails with timestamps. For Pro and Business plan customers, reports are exported in a format accepted directly by FIRS e-filing portals. We consult with Nigerian tax practitioners on every major update to ensure ongoing compliance.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">How long does an audit take?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        The average audit on Guardrail completes in 13.8 seconds for a standard 6-month transaction dataset (up to 2,000 entries). Larger datasets (up to 10,000 transactions) typically complete within 45–90 seconds. Real-time monitoring features like expense limit alerts and variance detection fire within 3 seconds of a new transaction being logged. For context: the same manual reconciliation by a trained accountant typically takes 4–12 hours for a comparable dataset.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="faq-section" data-cat="security">
+    <div class="fs-title">Security & Privacy</div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">How is my financial data protected?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Your data is protected with 256-bit AES encryption at rest and TLS 1.3 in transit — the same standard used by Tier-1 banks. We are SOC 2 Type II certified and ISO 27001 compliant. Key security architecture details: all data is stored in Nigeria-region AWS servers (Lagos edge node); we never sell or share your transaction data with third parties; data is deleted within 30 days of account termination on request; and each workspace is isolated in its own encrypted tenant with no cross-client data access.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Does Guardrail have access to my bank account?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        No. Guardrail does not have direct access to your bank account. All financial data enters Guardrail via CSV/Excel upload (exported from your bank's portal) or through your accounting software (Xero sync is read-only). We use OAuth 2.0 for third-party integrations, meaning we only receive the transaction data you explicitly authorise — never your login credentials. We cannot initiate transactions, move money, or access any data beyond what you import.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Can my team members see all financial data?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        You control exactly what each team member can see. Guardrail has three access levels: <strong style="color:#fff">Admin</strong> (full access — ledger, reports, settings, billing); <strong style="color:#fff">Editor</strong> (can upload, categorise, and run audits, but cannot change settings or view billing); <strong style="color:#fff">Viewer</strong> (read-only access to dashboards and reports). You can also restrict access to specific ledger segments — for example, a team member can be given access to only the "Marketing" expense category without seeing payroll data.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="faq-section" data-cat="pricing">
+    <div class="fs-title">Pricing & Billing</div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is there really a free plan? What are the limits?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Yes. The Free plan includes up to 200 transactions per month, 1 CSV import per month, basic ledger balancing verification, automatic expense categorisation, and a watermarked PDF audit report. There's no credit card required and no time limit — it's free forever. The main limitations are the transaction cap and watermarked reports. If you process more than 200 transactions per month or need FIRS-formatted clean reports, you'll need Pro (₦4,999/mo).
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">How does the 30-day money-back guarantee work?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        If you upgrade to Pro or Business and are not satisfied within 30 days, email <a href="mailto:billing@guardrailfinancial.ng">billing@guardrailfinancial.ng</a> with your account email and we will refund 100% of your payment within 3 business days — no questions asked, no forms to fill. The guarantee applies to your first payment on each plan tier. Annual plan refunds are prorated from the first month and we refund the full unused portion.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What payment methods do you accept?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        We accept all major Nigerian payment methods: Paystack (Mastercard, Visa, Verve, bank transfer, USSD), Flutterwave, and direct bank transfer (GTBank, Zenith, Access, UBA, First Bank). For Business and Enterprise plans, we also accept invoice-based payments with NET-15 terms. All prices are in Nigerian Naira (₦) and VAT is included at 7.5%.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="faq-section" data-cat="integrations">
+    <div class="fs-title">Integrations</div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Which Nigerian banks' CSV formats does Guardrail support?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Guardrail has native parsers for CSV/Excel exports from: GTBank, Zenith Bank, Access Bank, First Bank, UBA, Sterling Bank, Fidelity Bank, Stanbic IBTC, Polaris Bank, Keystone Bank, and all CBN-licensed fintechs (Opay, Moniepoint, Kuda, PalmPay, Carbon). If your bank's format is not listed, upload the file and our parser will auto-detect the column structure. If auto-detection fails (rare), you can manually map columns — we save the mapping so future imports from that bank are automatic.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">When is QuickBooks integration coming?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        QuickBooks Online integration is currently in closed beta and is expected to launch in Q3 2026 (September). Wave and Sage integrations are in Q4 2026. All Business plan customers will get early access automatically. If you want to join the QuickBooks beta now, email <a href="mailto:integrations@guardrailfinancial.ng">integrations@guardrailfinancial.ng</a> — we're adding 50 beta users per week. Until then, you can export from QuickBooks as CSV and Guardrail will parse it correctly.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+  </div>
+
+  <div class="faq-section" data-cat="technical">
+    <div class="fs-title">Technical</div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">What file formats can I import?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Guardrail accepts: CSV (.csv), Excel (.xlsx, .xls), ODS (LibreOffice Calc), and PDF bank statements (via OCR — Pro plan and above, accuracy varies by bank formatting). Maximum file size is 50MB per upload. For datasets larger than 50MB, use our chunked upload feature (split by date range) or contact support for a direct import.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Is there an API I can use to automate imports?<i class="faq-ico">+</i></div>
+      <div class="faq-a"><div class="faq-a-inner">
+        Yes. Pro plan includes read-only API access (pull audit reports, view ledger data, export to JSON/CSV). Business plan includes full read/write API access (push transactions programmatically, trigger audits, receive webhook alerts). API documentation is available at <a href="#">docs.guardrailfinancial.ng</a>. Rate limits: Free — no API access; Pro — 1,000 requests/day; Business — 10,000 requests/day. Enterprise can request custom limits.
+        <div class="helpful">Was this helpful? <button onclick="event.stopPropagation()">👍 Yes</button><button onclick="event.stopPropagation()">👎 No</button></div>
+      </div></div>
+    </div>
+  </div>
+
+</div>
+
+<section class="contact-sec" id="contact">
+  <div class="contact-box">
+    <div class="cc">
+      <div class="cc-icon">💬</div>
+      <h3 class="cc-h">Live Chat</h3>
+      <p class="cc-p">Talk to a real person. Average response time: under 4 minutes during business hours.</p>
+      <button class="cc-btn mint">Open Chat →</button>
+    </div>
+    <div class="cc">
+      <div class="cc-icon">📧</div>
+      <h3 class="cc-h">Email Support</h3>
+      <p class="cc-p">Send us anything. We respond to every email within 24 hours, guaranteed.</p>
+      <a href="mailto:support@guardrailfinancial.ng" class="cc-btn indigo">Send Email →</a>
+    </div>
+    <div class="cc">
+      <div class="cc-icon">📞</div>
+      <h3 class="cc-h">Schedule a Call</h3>
+      <p class="cc-p">30-minute onboarding call with a Guardrail specialist. Free for all plans.</p>
+      <button class="cc-btn mint">Book a Call →</button>
+    </div>
+  </div>
+</section>
+
+<script>
+function toggleFaq(item){
+  const wasOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i=>i.classList.remove('open'));
+  if(!wasOpen) item.classList.add('open');
+}
+function filterFaq(cat,btn){
+  document.querySelectorAll('.fcat').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.faq-section').forEach(sec=>{
+    sec.style.display=(cat==='all'||sec.dataset.cat===cat)?'block':'none';
+  });
+}
+function searchFaq(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.faq-item').forEach(item=>{
+    const txt=item.textContent.toLowerCase();
+    item.style.display=txt.includes(q)?'block':'none';
+  });
+  document.querySelectorAll('.faq-section').forEach(sec=>{
+    const visible=[...sec.querySelectorAll('.faq-item')].some(i=>i.style.display!=='none');
+    sec.style.display=visible?'block':'none';
+  });
+  if(!q){document.querySelectorAll('.faq-item,.faq-section').forEach(el=>el.style.display='');}
+}
+let open=false;
+function toggleMenu(){open=!open;document.getElementById('dd').classList.toggle('open',open);}
+document.addEventListener('click',e=>{ if(!e.target.closest('.nav-r')){open=false;document.getElementById('dd').classList.remove('open');}});
+function toggleTheme(){
+  const h=document.documentElement;const n=h.dataset.theme==='light'?'dark':'light';
+  h.dataset.theme=n;document.getElementById('themeIco').textContent=n==='light'?'☀️':'🌙';
+  localStorage.setItem('gr-theme',n);
+}
+(function(){
+  const t=localStorage.getItem('gr-theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{const i=document.getElementById('themeIco');if(i)i.textContent=t==='light'?'☀️':'🌙';});
+})();
+</script>
+</body>
+</html>

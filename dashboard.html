@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Guardrail Financial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--s900:#0f172a;--gold:#febc2e;--red:#df3e3e}
+*{box-sizing:border-box;margin:0;padding:0}html{font-size:10px}
+body{font-family:'Inter',sans-serif;background:var(--slate);color:#fff;height:100vh;overflow:hidden;display:grid;grid-template-rows:auto 1fr}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(52,211,153,.018)1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.018)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* PREVIEW BANNER */
+.preview-banner{background:linear-gradient(90deg,rgba(254,188,46,.12),rgba(79,70,229,.12));border-bottom:1px solid rgba(254,188,46,.25);padding:.8rem 2rem;display:flex;align-items:center;justify-content:center;gap:1.6rem;font-size:1.25rem;color:rgba(255,255,255,.65);position:relative;z-index:200}
+.pb-dot{width:.6rem;height:.6rem;border-radius:50%;background:var(--gold);animation:blink 2s infinite;flex-shrink:0}
+.pb-link{color:var(--mint);text-decoration:none;font-weight:600}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* APP SHELL */
+.app{display:grid;grid-template-columns:22rem 1fr;height:100%;position:relative;z-index:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{background:rgba(15,23,42,.9);backdrop-filter:blur(20px);border-right:1px solid rgba(52,211,153,.08);display:flex;flex-direction:column;padding:2.4rem 1.6rem;overflow-y:auto}
+.sb-logo{display:flex;align-items:center;gap:.8rem;padding:.8rem;margin-bottom:3.2rem;text-decoration:none}
+.sb-logo-name{font-size:1.5rem;font-weight:800;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.sb-logo-fin{font-size:.85rem;font-weight:600;letter-spacing:.14em;color:var(--mint);font-family:'JetBrains Mono',monospace;display:block;line-height:1}
+.sb-sect{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(52,211,153,.45);padding:.6rem 1rem;margin-bottom:.8rem;margin-top:1.6rem}
+.sb-sect:first-of-type{margin-top:0}
+.sb-item{display:flex;align-items:center;gap:1rem;padding:1rem 1.2rem;border-radius:1rem;font-size:1.4rem;font-weight:500;color:rgba(255,255,255,.55);cursor:pointer;transition:all .2s;text-decoration:none;position:relative}
+.sb-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.sb-item.active{background:rgba(52,211,153,.1);color:var(--mint);font-weight:600}
+.sb-item.active::before{content:'';position:absolute;left:-1.6rem;top:50%;transform:translateY(-50%);width:.3rem;height:2rem;background:var(--mint);border-radius:0 3px 3px 0}
+.sb-ico{font-size:1.5rem;width:2rem;text-align:center}
+.sb-badge{margin-left:auto;background:rgba(223,62,62,.2);border:1px solid rgba(223,62,62,.3);color:#f87171;font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;padding:.15rem .6rem;border-radius:10rem}
+.sb-footer{margin-top:auto;padding-top:2.4rem;border-top:1px solid rgba(255,255,255,.06)}
+.sb-user{display:flex;align-items:center;gap:1.2rem;padding:.8rem 1rem;border-radius:1rem}
+.sb-av{width:3.6rem;height:3.6rem;border-radius:50%;background:linear-gradient(135deg,var(--mint),var(--indigo));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.4rem;color:#020617;flex-shrink:0}
+.sb-uname{font-size:1.3rem;font-weight:700;color:#fff}
+.sb-urole{font-size:1.15rem;color:rgba(255,255,255,.35)}
+
+/* MAIN */
+.main{overflow-y:auto;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:2rem 3rem;border-bottom:1px solid rgba(255,255,255,.05);flex-shrink:0}
+.tb-left{}
+.tb-greet{font-size:2rem;font-weight:900;letter-spacing:-.03em;color:#fff}
+.tb-date{font-family:'JetBrains Mono',monospace;font-size:1.2rem;color:rgba(255,255,255,.35);margin-top:.2rem}
+.tb-right{display:flex;align-items:center;gap:1.2rem}
+.tb-btn{display:flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.22);border-radius:.9rem;padding:.9rem 1.8rem;font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:600;color:var(--mint);cursor:pointer;transition:all .2s}
+.tb-btn:hover{background:rgba(52,211,153,.18)}
+.tb-btn.pri{background:var(--mint);color:#020617;border-color:transparent;box-shadow:0 4px 20px rgba(52,211,153,.25)}
+.tb-btn.pri:hover{background:#6ee7b7}
+.alert-btn{position:relative}
+.alert-dot{position:absolute;top:.6rem;right:.6rem;width:.8rem;height:.8rem;border-radius:50%;background:var(--red);border:2px solid var(--slate)}
+
+/* CONTENT */
+.content{padding:2.4rem 3rem;flex:1}
+
+/* HEALTH SCORE */
+.health-row{display:grid;grid-template-columns:1fr 3fr;gap:2.4rem;margin-bottom:2.4rem}
+.health-card{background:rgba(15,23,42,.7);border:1px solid rgba(52,211,153,.15);border-radius:2rem;padding:2.8rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;overflow:hidden}
+.health-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 50%,rgba(52,211,153,.06),transparent 70%)}
+.score-ring{width:12rem;height:12rem;border-radius:50%;background:conic-gradient(var(--mint) 0% 91%, rgba(255,255,255,.07) 91% 100%);display:flex;align-items:center;justify-content:center;margin-bottom:1.6rem;position:relative}
+.score-inner{width:8.4rem;height:8.4rem;border-radius:50%;background:rgba(15,23,42,.95);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-num{font-family:'JetBrains Mono',monospace;font-size:2.8rem;font-weight:700;color:var(--mint);line-height:1}
+.score-max{font-size:1.1rem;color:rgba(255,255,255,.35)}
+.health-label{font-size:1.2rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:.4rem}
+.health-grade{font-size:1.6rem;font-weight:800;color:var(--mint)}
+
+/* KPI CARDS */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1.6rem}
+.kpi{background:rgba(15,23,42,.65);border:1px solid rgba(255,255,255,.07);border-radius:1.6rem;padding:2.2rem;transition:all .3s}
+.kpi:hover{border-color:rgba(52,211,153,.15);transform:translateY(-2px)}
+.kpi-label{font-size:1.2rem;font-weight:600;color:rgba(255,255,255,.4);letter-spacing:.04em;text-transform:uppercase;margin-bottom:1.2rem;display:flex;align-items:center;justify-content:space-between}
+.kpi-ico{font-size:1.4rem}
+.kpi-val{font-family:'JetBrains Mono',monospace;font-size:2.4rem;font-weight:700;color:#fff;letter-spacing:-.02em;margin-bottom:.6rem}
+.kpi-delta{font-size:1.2rem;font-weight:600;font-family:'JetBrains Mono',monospace}
+.delta-up{color:var(--mint)}
+.delta-down{color:#f87171}
+
+/* MIDDLE ROW */
+.mid-row{display:grid;grid-template-columns:1.5fr 1fr;gap:2.4rem;margin-top:2.4rem}
+
+/* AUDIT TERMINAL */
+.audit-card{background:rgba(15,23,42,.8);border:1px solid rgba(52,211,153,.14);border-radius:2rem;overflow:hidden}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:1.8rem 2.4rem;border-bottom:1px solid rgba(255,255,255,.06)}
+.card-title{font-size:1.45rem;font-weight:700;color:#fff}
+.card-badge{font-family:'JetBrains Mono',monospace;font-size:1.05rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.35rem 1rem;border-radius:10rem}
+.badge-live{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:var(--mint)}
+.badge-warn{background:rgba(223,62,62,.12);border:1px solid rgba(223,62,62,.25);color:#f87171}
+.audit-feed{padding:1.8rem 2.4rem;font-family:'JetBrains Mono',monospace;font-size:1.2rem;max-height:28rem;overflow-y:auto}
+.af-row{display:grid;grid-template-columns:8rem 1fr auto;gap:1rem;padding:.7rem 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center}
+.af-time{color:rgba(255,255,255,.3)}
+.af-desc{color:rgba(255,255,255,.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.af-amt{text-align:right;font-weight:600}
+.af-ok{color:var(--mint)}
+.af-warn{color:var(--gold)}
+.af-err{color:#f87171}
+.af-row-alert{background:rgba(223,62,62,.04);border-radius:.6rem;padding:.7rem 1rem;margin:.3rem -1rem;border-bottom:none}
+
+/* UPLOAD ZONE */
+.upload-card{background:rgba(15,23,42,.7);border:1px solid rgba(255,255,255,.07);border-radius:2rem;overflow:hidden}
+.upload-zone{margin:2rem;border:2px dashed rgba(52,211,153,.25);border-radius:1.4rem;padding:3rem;text-align:center;cursor:pointer;transition:all .3s;background:rgba(52,211,153,.02)}
+.upload-zone:hover,.upload-zone.over{border-color:rgba(52,211,153,.6);background:rgba(52,211,153,.06)}
+.uz-icon{font-size:3.2rem;margin-bottom:1.2rem}
+.uz-h{font-size:1.5rem;font-weight:700;color:rgba(255,255,255,.75);margin-bottom:.6rem}
+.uz-p{font-size:1.25rem;color:rgba(255,255,255,.35);margin-bottom:1.6rem}
+.uz-btn{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:.8rem;padding:.8rem 2rem;font-family:'Inter',sans-serif;font-size:1.3rem;font-weight:600;color:var(--mint);cursor:pointer;transition:all .2s}
+.uz-btn:hover{background:rgba(52,211,153,.18)}
+
+/* BOTTOM ROW */
+.bot-row{display:grid;grid-template-columns:1fr 1fr;gap:2.4rem;margin-top:2.4rem;margin-bottom:2.4rem}
+
+/* GOALS */
+.goals-list{padding:1.6rem 2.4rem}
+.goal-item{margin-bottom:1.8rem}
+.goal-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}
+.goal-name{font-size:1.35rem;font-weight:600;color:rgba(255,255,255,.75)}
+.goal-vals{font-family:'JetBrains Mono',monospace;font-size:1.2rem;color:rgba(255,255,255,.4)}
+.goal-bar{height:.7rem;background:rgba(255,255,255,.07);border-radius:10rem;overflow:hidden}
+.goal-fill{height:100%;border-radius:10rem;transition:width .8s ease}
+.fill-ok{background:var(--mint)}
+.fill-warn{background:var(--gold)}
+.fill-err{background:#f87171}
+.goal-status{font-size:1.1rem;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.3);margin-top:.4rem}
+
+/* EXPENSE DONUT */
+.expense-card{background:rgba(15,23,42,.7);border:1px solid rgba(255,255,255,.07);border-radius:2rem;overflow:hidden}
+.donut-wrap{display:flex;align-items:center;justify-content:center;padding:2rem 2.4rem;gap:3rem}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1}
+.dl-item{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.dl-item:last-child{border-bottom:none}
+.dl-left{display:flex;align-items:center;gap:.9rem;font-size:1.3rem;color:rgba(255,255,255,.62)}
+.dl-dot{width:1rem;height:1rem;border-radius:.2rem;flex-shrink:0}
+.dl-val{font-family:'JetBrains Mono',monospace;font-size:1.25rem;font-weight:600;color:rgba(255,255,255,.7)}
+.dl-pct{font-size:1.1rem;color:rgba(255,255,255,.3);margin-left:.3rem}
+
+/* QUICK ACTIONS */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1.6rem 2.4rem}
+.qa-btn{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:1.2rem;padding:1.6rem;display:flex;align-items:center;gap:1.2rem;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;text-align:left}
+.qa-btn:hover{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.2);transform:translateY(-1px)}
+.qa-btn:nth-child(1):hover{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.2)}
+.qa-btn:nth-child(2):hover{background:rgba(79,70,229,.08);border-color:rgba(79,70,229,.2)}
+.qa-ico{font-size:2rem;width:4rem;height:4rem;border-radius:.8rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ico-mint{background:rgba(52,211,153,.1)}
+.ico-indigo{background:rgba(79,70,229,.1)}
+.ico-gold{background:rgba(254,188,46,.1)}
+.ico-red{background:rgba(248,113,113,.1)}
+.qa-label{font-size:1.35rem;font-weight:700;color:rgba(255,255,255,.8)}
+.qa-sub{font-size:1.15rem;color:rgba(255,255,255,.35);margin-top:.2rem}
+
+/* THEME BTN in topbar */
+.theme-fab{width:3.8rem;height:3.8rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.12);background:transparent;cursor:pointer;font-size:1.6rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.theme-fab:hover{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+
+/* LIGHT MODE */
+[data-theme="light"] body{background:#edf0f5;color:#0a0d10}
+[data-theme="light"] .sidebar{background:rgba(255,255,255,.88)}
+[data-theme="light"] .main{background:#f5f7fb}
+[data-theme="light"] .audit-card,[data-theme="light"] .upload-card,[data-theme="light"] .expense-card,[data-theme="light"] .kpi,[data-theme="light"] .health-card,[data-theme="light"] .upload-zone{background:rgba(255,255,255,.8);border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .topbar{border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .tb-greet,[data-theme="light"] .card-title,[data-theme="light"] .kpi-val,[data-theme="light"] .goal-name,[data-theme="light"] .sb-uname{color:#0a0d10}
+[data-theme="light"] .score-inner{background:rgba(255,255,255,.95)}
+[data-theme="light"] .sb-item{color:rgba(10,13,16,.55)}
+[data-theme="light"] .sb-item:hover{color:rgba(10,13,16,.85);background:rgba(0,0,0,.04)}
+[data-theme="light"] .sb-item.active{color:var(--mint);background:rgba(52,211,153,.08)}
+[data-theme="light"] .sb-urole{color:rgba(10,13,16,.42)}
+[data-theme="light"] .sb-sect{color:rgba(52,211,153,.55)}
+[data-theme="light"] .sb-footer{border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .sb-badge{color:#c0392b;background:rgba(223,62,62,.08);border-color:rgba(223,62,62,.2)}
+[data-theme="light"] .tb-date{color:rgba(10,13,16,.45)}
+[data-theme="light"] .tb-btn{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.2);color:var(--mint)}
+[data-theme="light"] .kpi-label{color:rgba(10,13,16,.48)}
+[data-theme="light"] .health-label{color:rgba(10,13,16,.45)}
+[data-theme="light"] .health-grade{color:var(--mint)}
+[data-theme="light"] .af-time{color:rgba(10,13,16,.38)}
+[data-theme="light"] .af-desc{color:rgba(10,13,16,.68)}
+[data-theme="light"] .af-row{border-color:rgba(0,0,0,.05)}
+[data-theme="light"] .af-row-alert{background:rgba(223,62,62,.04)}
+[data-theme="light"] .goal-status{color:rgba(10,13,16,.42)}
+[data-theme="light"] .goal-vals{color:rgba(10,13,16,.45)}
+[data-theme="light"] .goal-bar{background:rgba(0,0,0,.07)}
+[data-theme="light"] .dl-left{color:rgba(10,13,16,.62)}
+[data-theme="light"] .dl-val{color:rgba(10,13,16,.72)}
+[data-theme="light"] .dl-pct{color:rgba(10,13,16,.38)}
+[data-theme="light"] .dl-item{border-color:rgba(0,0,0,.05)}
+[data-theme="light"] .qa-btn{background:rgba(0,0,0,.03);border-color:rgba(0,0,0,.07)}
+[data-theme="light"] .qa-btn:hover{background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2)}
+[data-theme="light"] .qa-label{color:rgba(10,13,16,.8)}
+[data-theme="light"] .qa-sub{color:rgba(10,13,16,.42)}
+[data-theme="light"] .uz-h{color:rgba(10,13,16,.75)}
+[data-theme="light"] .uz-p{color:rgba(10,13,16,.42)}
+[data-theme="light"] .upload-zone{background:rgba(52,211,153,.02);border-color:rgba(52,211,153,.28)}
+[data-theme="light"] .preview-banner{background:linear-gradient(90deg,rgba(254,188,46,.07),rgba(79,70,229,.07));border-color:rgba(254,188,46,.18);color:rgba(10,13,16,.55)}
+[data-theme="light"] .card-hdr{border-color:rgba(0,0,0,.06)}
+
+@media(max-width:1100px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .health-row{grid-template-columns:1fr}
+}
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mid-row,.bot-row{grid-template-columns:1fr}
+  body{overflow:auto;height:auto}
+}
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  <span class="pb-dot"></span>
+  <span><strong style="color:var(--gold)">Preview Mode</strong> — This is a demonstration of the Guardrail dashboard. <a href="login.html" class="pb-link">Log in to access your real workspace →</a></span>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <a href="index.html" class="sb-logo">
+      <svg width="26" height="30" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><div class="sb-logo-name">Guardrail</div><span class="sb-logo-fin">Financial</span></div>
+    </a>
+
+    <div class="sb-sect">Overview</div>
+    <a class="sb-item active"><span class="sb-ico">📊</span>Dashboard</a>
+    <a class="sb-item"><span class="sb-ico">🔍</span>Audit Centre</a>
+    <a class="sb-item"><span class="sb-ico">📋</span>Ledger <span class="sb-badge">2</span></a>
+
+    <div class="sb-sect">Finance</div>
+    <a class="sb-item"><span class="sb-ico">💸</span>Expenses</a>
+    <a class="sb-item"><span class="sb-ico">🎯</span>Goals</a>
+    <a class="sb-item"><span class="sb-ico">📈</span>Reports</a>
+    <a class="sb-item"><span class="sb-ico">🧾</span>Tax Schedule</a>
+
+    <div class="sb-sect">Settings</div>
+    <a class="sb-item"><span class="sb-ico">🔗</span>Integrations</a>
+    <a class="sb-item"><span class="sb-ico">👥</span>Team</a>
+    <a class="sb-item"><span class="sb-ico">⚙️</span>Settings</a>
+
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av">C</div>
+        <div><div class="sb-uname">Chukwuemeka Obi</div><div class="sb-urole">Admin · Pro Plan</div></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="tb-left">
+        <div class="tb-greet">Good morning, Chukwuemeka 👋</div>
+        <div class="tb-date" id="tbDate">Loading...</div>
+      </div>
+      <div class="tb-right">
+        <button class="theme-fab" onclick="toggleTheme()"><span id="themeIco">🌙</span></button>
+        <button class="tb-btn alert-btn">🔔 <span class="alert-dot"></span></button>
+        <button class="tb-btn pri" onclick="triggerUpload()">+ New Audit</button>
+      </div>
+    </div>
+
+    <div class="content">
+      <!-- HEALTH + KPI -->
+      <div class="health-row">
+        <div class="health-card">
+          <div class="score-ring">
+            <div class="score-inner">
+              <div class="score-num">91</div>
+              <div class="score-max">/100</div>
+            </div>
+          </div>
+          <div class="health-label">Financial Health Score</div>
+          <div class="health-grade">Excellent</div>
+        </div>
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="kpi-label">Net Revenue <span class="kpi-ico">💰</span></div>
+            <div class="kpi-val">₦8.34M</div>
+            <div class="kpi-delta delta-up">↑ 12.4% vs last month</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Total Expenses <span class="kpi-ico">📤</span></div>
+            <div class="kpi-val">₦3.12M</div>
+            <div class="kpi-delta delta-up">↓ 3.1% vs last month</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Unresolved Flags <span class="kpi-ico">🚨</span></div>
+            <div class="kpi-val" style="color:#f87171">2</div>
+            <div class="kpi-delta delta-down">↑ 1 new alert today</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-label">Audit Score <span class="kpi-ico">🛡️</span></div>
+            <div class="kpi-val" style="color:var(--mint)">98/100</div>
+            <div class="kpi-delta delta-up">↑ 3pts since last audit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIT + UPLOAD -->
+      <div class="mid-row">
+        <div class="audit-card">
+          <div class="card-hdr">
+            <div class="card-title">Live Audit Feed</div>
+            <span class="card-badge badge-live">● LIVE</span>
+          </div>
+          <div class="audit-feed" id="auditFeed">
+            <div class="af-row">
+              <span class="af-time">14:32:01</span>
+              <span class="af-desc">GTBank Credit — Client Payment</span>
+              <span class="af-amt af-ok">+₦500,000</span>
+            </div>
+            <div class="af-row af-row-alert">
+              <span class="af-time">14:29:48</span>
+              <span class="af-desc">⚠ Supplies budget breached by ₦62,000</span>
+              <span class="af-amt af-err">ALERT</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">14:18:33</span>
+              <span class="af-desc">Zenith — Vendor Payment (Lagos Supplies Ltd)</span>
+              <span class="af-amt af-err">-₦312,000</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">14:05:12</span>
+              <span class="af-desc">POS Settlement — Opay Terminal #4421</span>
+              <span class="af-amt af-ok">+₦18,500</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">13:55:08</span>
+              <span class="af-desc">Access Bank — Staff Salary Run</span>
+              <span class="af-amt af-err">-₦1,240,000</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">13:41:22</span>
+              <span class="af-desc">GTBank — Marketing Agency (Digital Works)</span>
+              <span class="af-amt af-err">-₦188,000</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">13:30:00</span>
+              <span class="af-desc">UBA — Revenue (Retail B2B Order #12441)</span>
+              <span class="af-amt af-ok">+₦750,000</span>
+            </div>
+            <div class="af-row">
+              <span class="af-time">12:58:19</span>
+              <span class="af-desc">Petty Cash Float — Reconciled by Admin</span>
+              <span class="af-amt af-warn">₦45,000</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-card">
+          <div class="card-hdr">
+            <div class="card-title">New Audit</div>
+            <span class="card-badge badge-live" style="background:rgba(79,70,229,.12);border-color:rgba(79,70,229,.25);color:rgba(165,180,252,.9)">PRO</span>
+          </div>
+          <div class="upload-zone" id="dropzone" ondragover="dzOver(event)" ondragleave="dzLeave(event)" ondrop="dzDrop(event)" onclick="triggerUpload()">
+            <div class="uz-icon">📁</div>
+            <div class="uz-h">Drop your CSV or Excel file</div>
+            <p class="uz-p">Supports GTBank, Zenith, Access, UBA, Xero exports and 20+ more formats</p>
+            <button class="uz-btn" type="button">Browse Files</button>
+          </div>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this)">
+          <div id="uploadProgress" style="display:none;padding:0 2rem 2rem">
+            <div style="font-size:1.35rem;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:1rem" id="uploadStatus">Parsing transactions...</div>
+            <div style="background:rgba(255,255,255,.07);border-radius:10rem;height:.8rem;overflow:hidden">
+              <div id="progressBar" style="background:var(--mint);height:100%;border-radius:10rem;width:0%;transition:width .4s ease"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GOALS + EXPENSES -->
+      <div class="bot-row">
+        <div class="audit-card">
+          <div class="card-hdr">
+            <div class="card-title">Q2 2026 Goal Tracking</div>
+            <span class="card-badge" style="background:rgba(254,188,46,.1);border:1px solid rgba(254,188,46,.2);color:var(--gold)">42 days left</span>
+          </div>
+          <div class="goals-list">
+            <div class="goal-item">
+              <div class="goal-meta">
+                <span class="goal-name">Revenue Target</span>
+                <span class="goal-vals">₦8.34M / ₦12M</span>
+              </div>
+              <div class="goal-bar"><div class="goal-fill fill-ok" style="width:69.5%"></div></div>
+              <div class="goal-status">69.5% · On track · Projected ₦11.82M EOQ</div>
+            </div>
+            <div class="goal-item">
+              <div class="goal-meta">
+                <span class="goal-name">Expense Ceiling</span>
+                <span class="goal-vals">₦3.12M / ₦4M</span>
+              </div>
+              <div class="goal-bar"><div class="goal-fill fill-ok" style="width:78%"></div></div>
+              <div class="goal-status">78% used · 22% remaining buffer</div>
+            </div>
+            <div class="goal-item">
+              <div class="goal-meta">
+                <span class="goal-name">Emergency Fund</span>
+                <span class="goal-vals">₦2.1M / ₦3M</span>
+              </div>
+              <div class="goal-bar"><div class="goal-fill fill-warn" style="width:70%"></div></div>
+              <div class="goal-status">70% · ₦900K gap to target</div>
+            </div>
+            <div class="goal-item">
+              <div class="goal-meta">
+                <span class="goal-name">Supplies Budget</span>
+                <span class="goal-vals">₦312K / ₦250K</span>
+              </div>
+              <div class="goal-bar"><div class="goal-fill fill-err" style="width:100%"></div></div>
+              <div class="goal-status" style="color:#f87171">⚠ Breached by ₦62,000 — Review required</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="expense-card">
+          <div class="card-hdr">
+            <div class="card-title">Expense Breakdown</div>
+            <span class="card-badge badge-live">June 2026</span>
+          </div>
+          <div class="donut-wrap">
+            <svg class="donut-svg" width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="18"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#34D399" stroke-width="18" stroke-dasharray="110 204" stroke-dashoffset="0" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#4F46E5" stroke-width="18" stroke-dasharray="62 252" stroke-dashoffset="-110" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#febc2e" stroke-width="18" stroke-dasharray="38 276" stroke-dashoffset="-172" transform="rotate(-90 60 60)"/>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#f87171" stroke-width="18" stroke-dasharray="104 210" stroke-dashoffset="-210" transform="rotate(-90 60 60)"/>
+              <text x="60" y="56" text-anchor="middle" fill="white" font-size="13" font-weight="700" font-family="JetBrains Mono">₦3.12M</text>
+              <text x="60" y="70" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="9" font-family="Inter">total</text>
+            </svg>
+            <div class="donut-legend">
+              <div class="dl-item"><div class="dl-left"><div class="dl-dot" style="background:#34D399"></div>Personnel</div><div class="dl-val">₦1.24M <span class="dl-pct">40%</span></div></div>
+              <div class="dl-item"><div class="dl-left"><div class="dl-dot" style="background:#4F46E5"></div>Marketing</div><div class="dl-val">₦688K <span class="dl-pct">22%</span></div></div>
+              <div class="dl-item"><div class="dl-left"><div class="dl-dot" style="background:#febc2e"></div>Operations</div><div class="dl-val">₦374K <span class="dl-pct">12%</span></div></div>
+              <div class="dl-item"><div class="dl-left"><div class="dl-dot" style="background:#f87171"></div>Supplies</div><div class="dl-val">₦312K <span class="dl-pct">10%</span></div></div>
+              <div class="dl-item"><div class="dl-left"><div class="dl-dot" style="background:rgba(255,255,255,.25)"></div>Other</div><div class="dl-val">₦502K <span class="dl-pct">16%</span></div></div>
+            </div>
+          </div>
+
+          <div class="card-hdr" style="border-top:1px solid rgba(255,255,255,.06)">
+            <div class="card-title">Quick Actions</div>
+          </div>
+          <div class="qa-grid">
+            <button class="qa-btn"><div class="qa-ico ico-mint">🔍</div><div><div class="qa-label">New Audit</div><div class="qa-sub">Run instant check</div></div></button>
+            <button class="qa-btn"><div class="qa-ico ico-indigo">📄</div><div><div class="qa-label">Export PDF</div><div class="qa-sub">FIRS-ready report</div></div></button>
+            <button class="qa-btn"><div class="qa-ico ico-gold">🎯</div><div><div class="qa-label">Set Goal</div><div class="qa-sub">Add Q3 target</div></div></button>
+            <button class="qa-btn"><div class="qa-ico ico-red">👥</div><div><div class="qa-label">Invite Team</div><div class="qa-sub">Add 2 more seats</div></div></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Date
+document.getElementById('tbDate').textContent = new Date().toLocaleDateString('en-NG', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// Upload
+function triggerUpload(){ document.getElementById('fileInput').click(); }
+function dzOver(e){ e.preventDefault(); document.getElementById('dropzone').classList.add('over'); }
+function dzLeave(){ document.getElementById('dropzone').classList.remove('over'); }
+function dzDrop(e){
+  e.preventDefault(); dzLeave();
+  const f=e.dataTransfer.files[0];
+  if(f) simulateAudit(f.name);
+}
+function handleFile(input){
+  if(input.files[0]) simulateAudit(input.files[0].name);
+}
+function simulateAudit(name){
+  document.getElementById('dropzone').style.display='none';
+  const prog=document.getElementById('uploadProgress');
+  const bar=document.getElementById('progressBar');
+  const status=document.getElementById('uploadStatus');
+  prog.style.display='block';
+  const steps=['Parsing transactions...','Deduplicating entries...','Running categorisation engine...','Verifying ∑D = ∑C balance...','Generating FIRS report...','Audit complete ✓'];
+  let i=0;
+  const tick=setInterval(()=>{
+    status.textContent=steps[i]||steps[steps.length-1];
+    bar.style.width=((i+1)/steps.length*100)+'%';
+    if(i>=steps.length-1){
+      clearInterval(tick);
+      bar.style.background='var(--mint)';
+      setTimeout(()=>{
+        prog.style.display='none';
+        document.getElementById('dropzone').style.display='';
+        document.getElementById('dropzone').classList.remove('over');
+      },2000);
+    }
+    i++;
+  },600);
+}
+
+// Live feed simulation
+let feedMessages=[
+  {time:'now',desc:'New CSV upload received — analysing',amt:'PENDING',cls:'af-warn'},
+  {time:'just now',desc:'Moniepoint Settlement — Terminal #8812',amt:'+₦12,500',cls:'af-ok'},
+  {time:'1m ago',desc:'Auto-categorised: \'Transport\' ← Uber Nigeria',amt:'-₦7,400',cls:'af-err'},
+];
+let feedIdx=0;
+setInterval(()=>{
+  const feed=document.getElementById('auditFeed');
+  const m=feedMessages[feedIdx%feedMessages.length];
+  const row=document.createElement('div');
+  row.className='af-row';
+  const now=new Date();
+  const t=now.toTimeString().slice(0,8);
+  row.innerHTML=`<span class="af-time">${t}</span><span class="af-desc">${m.desc}</span><span class="af-amt ${m.cls}">${m.amt}</span>`;
+  row.style.opacity='0';
+  row.style.transition='opacity .5s';
+  feed.insertBefore(row,feed.firstChild);
+  setTimeout(()=>row.style.opacity='1',50);
+  if(feed.children.length>12) feed.removeChild(feed.lastChild);
+  feedIdx++;
+},8000);
+
+// Theme
+function toggleTheme(){
+  const h=document.documentElement;const n=h.dataset.theme==='light'?'dark':'light';
+  h.dataset.theme=n;document.getElementById('themeIco').textContent=n==='light'?'☀️':'🌙';
+  localStorage.setItem('gr-theme',n);
+}
+(function(){
+  const t=localStorage.getItem('gr-theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{const i=document.getElementById('themeIco');if(i)i.textContent=t==='light'?'☀️':'🌙';});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Guardrail Financial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--gold:#febc2e}
+*{box-sizing:border-box;margin:0;padding:0}html{font-size:10px;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--slate);color:#fff;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(52,211,153,.022)1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.022)1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:6.8rem;display:flex;align-items:center;justify-content:space-between;padding:0 4rem;background:rgba(2,6,23,.9);backdrop-filter:blur(20px);border-bottom:1px solid rgba(52,211,153,.08)}
+.nav-logo{display:flex;align-items:center;gap:.9rem;text-decoration:none}
+.logo-name{font-size:1.7rem;font-weight:800;letter-spacing:.02em;color:#fff;text-transform:uppercase}
+.logo-fin{font-size:.9rem;font-weight:600;letter-spacing:.14em;color:var(--mint);font-family:'JetBrains Mono',monospace;display:block;line-height:1}
+.nav-r{display:flex;align-items:center;gap:1rem;position:relative}
+.theme-btn{width:3.8rem;height:3.8rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.12);background:transparent;cursor:pointer;font-size:1.6rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.menu-btn{display:flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);border-radius:.8rem;padding:.8rem 1.6rem;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.35rem;font-weight:600;color:rgba(255,255,255,.8);transition:all .2s}
+.ham{display:flex;flex-direction:column;gap:4px;width:18px}
+.ham span{display:block;height:2px;background:var(--mint);border-radius:2px}
+.dropdown{position:absolute;top:calc(100% + 1rem);right:0;background:rgba(15,23,42,.98);backdrop-filter:blur(24px);border:1px solid rgba(52,211,153,.15);border-radius:1.4rem;padding:.6rem;min-width:19rem;opacity:0;pointer-events:none;transform:translateY(-8px);transition:all .25s}
+.dropdown.open{opacity:1;pointer-events:auto;transform:translateY(0)}
+.dd-item{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.4rem;border-radius:1rem;font-size:1.4rem;font-weight:500;color:rgba(255,255,255,.7);text-decoration:none;transition:all .2s}
+.dd-item:hover{background:rgba(52,211,153,.08);color:#fff}
+.dd-login{background:var(--mint);color:#020617!important;font-weight:700;margin-bottom:.4rem}
+
+/* HERO */
+.blog-hero{padding:14rem 4rem 7rem;position:relative;z-index:1;max-width:110rem;margin:0 auto}
+.bh-top{display:flex;align-items:flex-end;justify-content:space-between;gap:3rem;flex-wrap:wrap;margin-bottom:4rem}
+.bh-left{}
+.hero-label{display:inline-flex;align-items:center;gap:.8rem;background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.22);border-radius:10rem;padding:.65rem 1.6rem;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mint);margin-bottom:2rem;display:block}
+.bh-h{font-size:clamp(4rem,6vw,6.8rem);font-weight:900;letter-spacing:-.04em;color:#fff;line-height:1.0;margin-bottom:1.2rem}
+.bh-h .ac{color:var(--mint)}
+.bh-p{font-size:1.5rem;color:rgba(255,255,255,.48)}
+.search-wrap{position:relative;flex-shrink:0}
+.search-in{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.3rem 1.4rem 1.3rem 4.4rem;font-family:'Inter',sans-serif;font-size:1.4rem;color:#fff;outline:none;width:28rem;transition:all .2s}
+.search-in::placeholder{color:rgba(255,255,255,.3)}
+.search-in:focus{border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.04)}
+.search-ico{position:absolute;left:1.4rem;top:50%;transform:translateY(-50%);font-size:1.4rem;color:rgba(255,255,255,.3);pointer-events:none}
+
+/* CATS */
+.cats{display:flex;gap:1rem;flex-wrap:wrap;padding:0 4rem;max-width:110rem;margin:0 auto 5rem;position:relative;z-index:1}
+.cat-btn{padding:.7rem 1.8rem;border-radius:10rem;font-size:1.35rem;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.5);font-family:'Inter',sans-serif;transition:all .2s}
+.cat-btn.on{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.35);color:var(--mint)}
+.cat-btn:hover{border-color:rgba(255,255,255,.25);color:rgba(255,255,255,.8)}
+
+/* FEATURED */
+.featured{max-width:110rem;margin:0 auto;padding:0 4rem 6rem;position:relative;z-index:1}
+.feat-card{display:grid;grid-template-columns:1.2fr 1fr;gap:0;background:rgba(15,23,42,.7);border:1px solid rgba(52,211,153,.14);border-radius:2.4rem;overflow:hidden;transition:all .3s}
+.feat-card:hover{border-color:rgba(52,211,153,.3);transform:translateY(-3px)}
+.fc-img{background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(79,70,229,.1));position:relative;min-height:36rem;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.fc-img-inner{position:absolute;inset:0;display:flex;flex-direction:column;padding:3.6rem;justify-content:flex-end;background:linear-gradient(to top,rgba(2,6,23,.9),transparent)}
+.fc-img-deco{position:absolute;top:3rem;left:3rem;font-size:8rem;opacity:.15}
+.fc-body{padding:4.4rem;display:flex;flex-direction:column;justify-content:center}
+.art-cat{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.4rem 1.2rem;border-radius:10rem;margin-bottom:2rem}
+.cat-tax{background:rgba(254,188,46,.12);color:var(--gold);border:1px solid rgba(254,188,46,.2)}
+.cat-sme{background:rgba(52,211,153,.1);color:var(--mint);border:1px solid rgba(52,211,153,.2)}
+.cat-aud{background:rgba(79,70,229,.1);color:rgba(165,180,252,.9);border:1px solid rgba(79,70,229,.2)}
+.cat-cas{background:rgba(248,113,113,.1);color:rgba(248,113,113,.9);border:1px solid rgba(248,113,113,.2)}
+.cat-pro{background:rgba(255,255,255,.07);color:rgba(255,255,255,.65);border:1px solid rgba(255,255,255,.12)}
+.art-h{font-size:2.8rem;font-weight:900;letter-spacing:-.03em;color:#fff;margin-bottom:1.4rem;line-height:1.2}
+.art-excerpt{font-size:1.45rem;color:rgba(255,255,255,.5);line-height:1.7;margin-bottom:2.8rem}
+.art-meta{display:flex;align-items:center;gap:1.6rem;font-size:1.25rem;color:rgba(255,255,255,.35)}
+.art-meta .dot{color:rgba(255,255,255,.15)}
+.read-link{display:inline-flex;align-items:center;gap:.5rem;font-size:1.35rem;font-weight:700;color:var(--mint);text-decoration:none;margin-top:2rem;transition:all .2s}
+.read-link:hover{gap:1rem}
+
+/* GRID */
+.blog-grid{max-width:110rem;margin:0 auto;padding:0 4rem;display:grid;grid-template-columns:repeat(3,1fr);gap:2.4rem;position:relative;z-index:1}
+.blog-card{background:rgba(15,23,42,.65);border:1px solid rgba(255,255,255,.07);border-radius:2rem;overflow:hidden;transition:all .3s;cursor:pointer}
+.blog-card:hover{border-color:rgba(52,211,153,.2);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.bc-img{height:18rem;background:linear-gradient(135deg,rgba(52,211,153,.08),rgba(79,70,229,.08));display:flex;align-items:center;justify-content:center;font-size:5rem;position:relative}
+.bc-body{padding:2.6rem}
+.bc-h{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;color:#fff;margin-bottom:1rem;line-height:1.35}
+.bc-exc{font-size:1.35rem;color:rgba(255,255,255,.45);line-height:1.65;margin-bottom:1.8rem}
+.bc-meta{display:flex;justify-content:space-between;align-items:center;font-size:1.2rem;color:rgba(255,255,255,.3)}
+.read-t{font-family:'JetBrains Mono',monospace}
+
+/* NEWSLETTER */
+.newsletter{max-width:80rem;margin:8rem auto;padding:5rem 4rem;background:rgba(79,70,229,.08);border:1px solid rgba(79,70,229,.18);border-radius:2.4rem;text-align:center;position:relative;z-index:1}
+.nl-h{font-size:3.2rem;font-weight:900;letter-spacing:-.04em;color:#fff;margin-bottom:1rem}
+.nl-p{font-size:1.5rem;color:rgba(255,255,255,.48);margin-bottom:3.6rem}
+.nl-form{display:flex;gap:1.2rem;max-width:48rem;margin:0 auto}
+.nl-in{flex:1;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.35rem 1.6rem;font-family:'Inter',sans-serif;font-size:1.45rem;color:#fff;outline:none;transition:all .2s}
+.nl-in::placeholder{color:rgba(255,255,255,.28)}
+.nl-in:focus{border-color:rgba(79,70,229,.5);background:rgba(79,70,229,.05)}
+.nl-btn{background:var(--indigo);color:#fff;font-family:'Inter',sans-serif;font-size:1.45rem;font-weight:700;padding:1.35rem 2.8rem;border-radius:1rem;border:none;cursor:pointer;transition:all .25s;white-space:nowrap}
+.nl-btn:hover{background:#6058e8;transform:translateY(-1px)}
+.nl-note{font-size:1.25rem;color:rgba(255,255,255,.28);margin-top:1.6rem}
+
+/* LOAD MORE */
+.load-wrap{text-align:center;padding:5rem 0 12rem;position:relative;z-index:1}
+.btn-more{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:1rem;padding:1.4rem 3.6rem;font-family:'Inter',sans-serif;font-size:1.5rem;font-weight:600;color:rgba(255,255,255,.7);cursor:pointer;transition:all .2s}
+.btn-more:hover{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.3);color:var(--mint)}
+
+[data-theme="light"] body{background:#edf0f5;color:#0a0d10}
+[data-theme="light"] .nav{background:rgba(237,240,245,.92)}
+[data-theme="light"] .bh-h{color:#0a0d10}[data-theme="light"] .art-h,[data-theme="light"] .bc-h,[data-theme="light"] .nl-h{color:#0a0d10}
+[data-theme="light"] .feat-card,[data-theme="light"] .blog-card{background:rgba(255,255,255,.8);border-color:rgba(0,0,0,.08)}
+[data-theme="light"] .search-in{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#0a0d10}
+[data-theme="light"] .nl-in{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#0a0d10}
+[data-theme="light"] .bh-p{color:rgba(10,13,16,.5)}
+[data-theme="light"] .art-excerpt{color:rgba(10,13,16,.52)}
+[data-theme="light"] .art-meta{color:rgba(10,13,16,.4)}
+[data-theme="light"] .read-link{color:var(--mint)}
+[data-theme="light"] .bc-exc{color:rgba(10,13,16,.48)}
+[data-theme="light"] .bc-meta{color:rgba(10,13,16,.4)}
+[data-theme="light"] .bc-img{background:linear-gradient(135deg,rgba(52,211,153,.06),rgba(79,70,229,.06))}
+[data-theme="light"] .nl-h{color:#0a0d10}
+[data-theme="light"] .nl-p{color:rgba(10,13,16,.5)}
+[data-theme="light"] .nl-note{color:rgba(10,13,16,.32)}
+[data-theme="light"] .newsletter{background:rgba(79,70,229,.05);border-color:rgba(79,70,229,.14)}
+[data-theme="light"] .cat-btn{color:rgba(10,13,16,.52);border-color:rgba(0,0,0,.12)}
+[data-theme="light"] .cat-btn.on{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
+[data-theme="light"] .cat-btn:hover{border-color:rgba(0,0,0,.22);color:rgba(10,13,16,.8)}
+[data-theme="light"] .btn-more{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1);color:rgba(10,13,16,.65)}
+[data-theme="light"] .btn-more:hover{background:rgba(52,211,153,.07);border-color:rgba(52,211,153,.25);color:var(--mint)}
+[data-theme="light"] .fc-img{background:linear-gradient(135deg,rgba(52,211,153,.1),rgba(79,70,229,.08))}
+
+@media(max-width:900px){.feat-card{grid-template-columns:1fr}.fc-img{min-height:22rem}.blog-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.blog-grid{grid-template-columns:1fr}.nav{padding:0 2rem}.blog-hero,.featured,.cats,.blog-grid{padding-left:2rem;padding-right:2rem}.nl-form{flex-direction:column}.bh-top{flex-direction:column}.search-in{width:100%}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="index.html" class="nav-logo">
+    <svg width="28" height="32" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div><div class="logo-name">Guardrail</div><span class="logo-fin">Financial</span></div>
+  </a>
+  <div class="nav-r">
+    <button class="theme-btn" onclick="toggleTheme()"><span id="themeIco">🌙</span></button>
+    <button class="menu-btn" onclick="toggleMenu()"><div class="ham"><span></span><span></span><span></span></div>Menu</button>
+    <div class="dropdown" id="dd">
+      <a href="login.html" class="dd-item dd-login">→ Sign In</a>
+      <a href="features.html" class="dd-item">⚡ Features</a>
+      <a href="pricing.html" class="dd-item">💳 Pricing</a>
+      <a href="blog.html" class="dd-item">📰 Blog</a>
+      <a href="faq.html" class="dd-item">💬 FAQ</a>
+    </div>
+  </div>
+</nav>
+
+<section class="blog-hero">
+  <div class="bh-top">
+    <div class="bh-left">
+      <div class="hero-label">Guardrail Insights</div>
+      <h1 class="bh-h">The financial<br><span class="ac">intelligence</span> desk.</h1>
+      <p class="bh-p">Tax tips, SME finance strategies, audit guides, and product updates — written for Nigerian business owners who run tight books.</p>
+    </div>
+    <div class="search-wrap">
+      <span class="search-ico">🔍</span>
+      <input class="search-in" type="text" placeholder="Search articles..." oninput="filterArticles(this.value)">
+    </div>
+  </div>
+</section>
+
+<div class="cats">
+  <button class="cat-btn on" onclick="filterCat('all',this)">All Articles</button>
+  <button class="cat-btn" onclick="filterCat('tax',this)">Tax Tips</button>
+  <button class="cat-btn" onclick="filterCat('sme',this)">SME Finance</button>
+  <button class="cat-btn" onclick="filterCat('audit',this)">Audit Guides</button>
+  <button class="cat-btn" onclick="filterCat('case',this)">Case Studies</button>
+  <button class="cat-btn" onclick="filterCat('product',this)">Product Updates</button>
+</div>
+
+<section class="featured">
+  <a href="#" class="feat-card" style="text-decoration:none">
+    <div class="fc-img">
+      <div class="fc-img-deco">📋</div>
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(52,211,153,.12),rgba(2,6,23,.4))"></div>
+      <div class="fc-img-inner">
+        <h3 style="font-size:2.2rem;font-weight:900;color:#fff;letter-spacing:-.03em">The Complete Guide to FIRS Tax Filing for Nigerian SMEs in 2026</h3>
+      </div>
+    </div>
+    <div class="fc-body">
+      <span class="art-cat cat-tax">Tax Tips</span>
+      <h2 class="art-h">The Complete Guide to FIRS Tax Filing for Nigerian SMEs in 2026</h2>
+      <p class="art-excerpt">New FIRS regulations require SMEs with annual turnover above ₦25M to file quarterly digital VAT returns. Here's exactly what that means for your books, your software, and your audit trail — broken down step by step.</p>
+      <div class="art-meta">
+        <span>Adaeze Okwu</span><span class="dot">·</span><span>June 3, 2026</span><span class="dot">·</span><span class="read-t">12 min read</span>
+      </div>
+      <span class="read-link">Read article →</span>
+    </div>
+  </a>
+</section>
+
+<section class="blog-grid" id="articleGrid">
+  <a href="#" class="blog-card" data-cat="sme" style="text-decoration:none">
+    <div class="bc-img">📊</div>
+    <div class="bc-body">
+      <span class="art-cat cat-sme">SME Finance</span>
+      <h3 class="bc-h">How Lagos Traders Are Leaking ₦200K+ Per Quarter Without Knowing</h3>
+      <p class="bc-exc">Petty cash without reconciliation is the silent killer of SME cash flow. We analysed 1,200 transactions across 40 businesses to find the patterns.</p>
+      <div class="bc-meta"><span>May 28, 2026</span><span class="read-t">8 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="audit" style="text-decoration:none">
+    <div class="bc-img">🔍</div>
+    <div class="bc-body">
+      <span class="art-cat cat-aud">Audit Guides</span>
+      <h3 class="bc-h">What ∑ Debits = ∑ Credits Actually Means for Your Business</h3>
+      <p class="bc-exc">Double-entry bookkeeping explained without the jargon — and why a single unbalanced transaction can invalidate your entire quarterly report with FIRS.</p>
+      <div class="bc-meta"><span>May 22, 2026</span><span class="read-t">6 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="case" style="text-decoration:none">
+    <div class="bc-img">🏭</div>
+    <div class="bc-body">
+      <span class="art-cat cat-cas">Case Study</span>
+      <h3 class="bc-h">How Obi Manufacturing Recovered ₦340,000 in 19 Seconds</h3>
+      <p class="bc-exc">A Lagos manufacturer uploaded a 6-month CSV export. Guardrail found duplicate petty cash entries, three phantom vendor payments, and an uncategorised debit. Here's the full story.</p>
+      <div class="bc-meta"><span>May 15, 2026</span><span class="read-t">5 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="tax" style="text-decoration:none">
+    <div class="bc-img">🧾</div>
+    <div class="bc-body">
+      <span class="art-cat cat-tax">Tax Tips</span>
+      <h3 class="bc-h">Nigeria's 7.5% VAT: What Every SME Owner Must Know Before Filing</h3>
+      <p class="bc-exc">The 2024 Finance Act changes to VAT thresholds caught thousands of SMEs off guard. Here's your compliance checklist for 2026, with FIRS penalty amounts and avoidance strategies.</p>
+      <div class="bc-meta"><span>May 10, 2026</span><span class="read-t">10 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="sme" style="text-decoration:none">
+    <div class="bc-img">💰</div>
+    <div class="bc-body">
+      <span class="art-cat cat-sme">SME Finance</span>
+      <h3 class="bc-h">The 3-Month Cash Flow Forecast Every Nigerian Business Needs</h3>
+      <p class="bc-exc">Most SMEs only look at last month's P&L. The ones that survive know exactly where they'll be in 90 days. Here's the template we use internally — now yours to download.</p>
+      <div class="bc-meta"><span>May 5, 2026</span><span class="read-t">7 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="product" style="text-decoration:none">
+    <div class="bc-img">🚀</div>
+    <div class="bc-body">
+      <span class="art-cat cat-pro">Product Update</span>
+      <h3 class="bc-h">Guardrail v2.4: Xero Sync, Real-Time Alerts, and AI Categorisation</h3>
+      <p class="bc-exc">Our biggest release to date. Native Xero integration now live, real-time variance alerts, and an AI model trained on 2M+ Nigerian transaction descriptions for 94% auto-categorisation accuracy.</p>
+      <div class="bc-meta"><span>April 30, 2026</span><span class="read-t">4 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="audit" style="text-decoration:none">
+    <div class="bc-img">🛡️</div>
+    <div class="bc-body">
+      <span class="art-cat cat-aud">Audit Guides</span>
+      <h3 class="bc-h">5 Red Flags That Guarantee a FIRS Tax Audit in Nigeria</h3>
+      <p class="bc-exc">Unusually large expense deductions, inconsistent VAT filings, and mismatched ledgers are the top triggers. Know what to fix before the auditors arrive.</p>
+      <div class="bc-meta"><span>April 22, 2026</span><span class="read-t">9 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="case" style="text-decoration:none">
+    <div class="bc-img">🏗️</div>
+    <div class="bc-body">
+      <span class="art-cat cat-cas">Case Study</span>
+      <h3 class="bc-h">Adeleke Properties: From Spreadsheet Chaos to Clean Multi-Entity Books</h3>
+      <p class="bc-exc">A property developer running 3 SPVs, each with separate bank accounts and overlapping vendors. How Guardrail consolidated everything into one clean ledger in 2 weeks.</p>
+      <div class="bc-meta"><span>April 14, 2026</span><span class="read-t">6 min</span></div>
+    </div>
+  </a>
+
+  <a href="#" class="blog-card" data-cat="sme" style="text-decoration:none">
+    <div class="bc-img">📱</div>
+    <div class="bc-body">
+      <span class="art-cat cat-sme">SME Finance</span>
+      <h3 class="bc-h">POS Transactions and Nigerian Tax: What Your Accountant Should Be Tracking</h3>
+      <p class="bc-exc">POS settlements from Opay, Moniepoint, and traditional banks each report differently. Here's how to reconcile them without losing your mind — or your VAT credits.</p>
+      <div class="bc-meta"><span>April 8, 2026</span><span class="read-t">7 min</span></div>
+    </div>
+  </a>
+</section>
+
+<div class="load-wrap">
+  <button class="btn-more">Load more articles</button>
+</div>
+
+<section class="newsletter" style="margin-left:4rem;margin-right:4rem;max-width:calc(100% - 8rem)">
+  <h2 class="nl-h">Stay ahead of Nigerian tax law.</h2>
+  <p class="nl-p">One email per week. Tax deadlines, audit tips, product updates, and financial intelligence — zero filler.</p>
+  <div class="nl-form">
+    <input class="nl-in" type="email" placeholder="your@business.com" id="nlEmail">
+    <button class="nl-btn" onclick="subNewsletter()">Subscribe →</button>
+  </div>
+  <p class="nl-note" id="nlMsg">Join 4,200+ Nigerian business owners · Unsubscribe anytime</p>
+</section>
+
+<script>
+function filterCat(cat, btn){
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.blog-card').forEach(card=>{
+    card.style.display=(cat==='all'||card.dataset.cat===cat)?'block':'none';
+  });
+}
+function filterArticles(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.blog-card').forEach(card=>{
+    const txt=card.textContent.toLowerCase();
+    card.style.display=txt.includes(q)?'block':'none';
+  });
+}
+function subNewsletter(){
+  const v=document.getElementById('nlEmail').value;
+  if(!v||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){return;}
+  document.getElementById('nlEmail').value='';
+  document.getElementById('nlMsg').textContent='✓ You\'re in! First issue lands Friday.';
+  document.getElementById('nlMsg').style.color='var(--mint)';
+}
+let open=false;
+function toggleMenu(){open=!open;document.getElementById('dd').classList.toggle('open',open);}
+document.addEventListener('click',e=>{ if(!e.target.closest('.nav-r')){open=false;document.getElementById('dd').classList.remove('open');}});
+function toggleTheme(){
+  const h=document.documentElement;const n=h.dataset.theme==='light'?'dark':'light';
+  h.dataset.theme=n;document.getElementById('themeIco').textContent=n==='light'?'☀️':'🌙';
+  localStorage.setItem('gr-theme',n);
+}
+(function(){
+  const t=localStorage.getItem('gr-theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.addEventListener('DOMContentLoaded',()=>{const i=document.getElementById('themeIco');if(i)i.textContent=t==='light'?'☀️':'🌙';});
+})();
+</script>
+</body>
+</html>
