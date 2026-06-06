@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Create Account — Guardrail Financial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(52,211,153,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52,211,153,.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .type-card {
+    border: 2px solid rgba(255,255,255,0.08);
+    transition: all 0.2s;
+  }
+  .type-card:hover { transform: translateY(-2px); }
+  .type-card.selected-ind {
+    border-color: #34D399;
+    background: rgba(52,211,153,0.06);
+  }
+  .type-card.selected-biz {
+    border-color: #4F46E5;
+    background: rgba(79,70,229,0.06);
+  }
+  #step2 {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, opacity 0.4s ease;
+    opacity: 0;
+  }
+  #step2.open {
+    max-height: 2000px;
+    opacity: 1;
+  }
+  .strength-bar {
+    height: 4px;
+    border-radius: 9999px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  select {
+    font-family: 'Inter', sans-serif;
+  }
+  .spin { display: inline-block; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-300 min-h-screen relative">
+
+<!-- ── HEADER ──────────────────────────────────────────────────────────────── -->
+<header class="relative z-10 flex items-center justify-between px-8 py-5 border-b border-slate-800/50">
+  <a href="index.html" class="flex items-center gap-3 no-underline">
+    <svg width="26" height="30" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>
+      <div class="text-white font-extrabold tracking-wide uppercase text-lg leading-none">Guardrail</div>
+      <div class="mono text-emerald-400 text-xs font-semibold tracking-widest">Financial</div>
+    </div>
+  </a>
+  <a href="login.html" class="text-slate-400 hover:text-white text-sm transition-colors">Already have an account? <span class="text-emerald-400 font-semibold">Sign in →</span></a>
+</header>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────────────────────────── -->
+<main class="relative z-10 max-w-3xl mx-auto px-6 py-14">
+
+  <!-- ── STEP 1: Account Type Selection ────────────────────────────────────── -->
+  <div id="step1">
+    <div class="text-center mb-10">
+      <h1 class="text-4xl font-black text-white tracking-tight mb-3">Who are you signing up as?</h1>
+      <p class="text-slate-500 text-base">Choose the workspace that fits your needs.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
+      <!-- Individual Card -->
+      <div id="cardInd" class="type-card rounded-2xl p-8 cursor-pointer select-none" onclick="selectType('individual')">
+        <div class="mb-5">
+          <svg width="40" height="40" fill="none" viewBox="0 0 40 40">
+            <circle cx="20" cy="13" r="7" stroke="#34D399" stroke-width="2" fill="rgba(52,211,153,.1)"/>
+            <path d="M6 35c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">Individual</h2>
+        <p class="text-slate-400 text-sm leading-relaxed">Freelancers, sole traders, and anyone managing personal or self-employed finances.</p>
+        <div class="mt-5 inline-flex items-center gap-2 text-emerald-400 mono text-xs font-bold tracking-widest uppercase">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>Emerald workspace
+        </div>
+      </div>
+
+      <!-- Business Card -->
+      <div id="cardBiz" class="type-card rounded-2xl p-8 cursor-pointer select-none" onclick="selectType('business')">
+        <div class="mb-5">
+          <svg width="40" height="40" fill="none" viewBox="0 0 40 40">
+            <rect x="5" y="16" width="30" height="20" rx="2" stroke="#4F46E5" stroke-width="2" fill="rgba(79,70,229,.1)"/>
+            <path d="M13 16V10a2 2 0 012-2h10a2 2 0 012 2v6" stroke="#4F46E5" stroke-width="2"/>
+            <line x1="5" y1="24" x2="35" y2="24" stroke="#4F46E5" stroke-width="2"/>
+            <rect x="17" y="24" width="6" height="12" fill="#4F46E5" opacity=".3"/>
+          </svg>
+        </div>
+        <h2 class="text-xl font-bold text-white mb-2">Business</h2>
+        <p class="text-slate-400 text-sm leading-relaxed">SMEs, startups, and companies managing multi-department or multi-station operations.</p>
+        <div class="mt-5 inline-flex items-center gap-2 text-indigo-400 mono text-xs font-bold tracking-widest uppercase">
+          <span class="w-2 h-2 rounded-full bg-indigo-400"></span>Indigo workspace
+        </div>
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="flex items-center gap-4 mb-6">
+      <div class="flex-1 h-px bg-slate-800"></div>
+      <span class="text-slate-600 text-sm">or sign up with</span>
+      <div class="flex-1 h-px bg-slate-800"></div>
+    </div>
+
+    <!-- Google OAuth -->
+    <button id="googleSignupBtn" type="button"
+      class="w-full flex items-center justify-center gap-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 rounded-xl py-4 text-slate-300 hover:text-white font-semibold text-base transition-all">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </button>
+  </div>
+
+  <!-- ── STEP 2: Registration Form ──────────────────────────────────────────── -->
+  <div id="step2">
+    <div class="mt-10 border-t border-slate-800 pt-10">
+      <!-- Back + account type heading -->
+      <div class="flex items-center gap-3 mb-8">
+        <button type="button" onclick="clearType()" class="text-slate-500 hover:text-white text-sm transition-colors">← Back</button>
+        <div id="typeLabel" class="mono text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full"></div>
+      </div>
+
+      <!-- ── INDIVIDUAL FORM ──────────────────────────────────────────────── -->
+      <form id="formInd" class="hidden" novalidate>
+        <div class="grid gap-5">
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="ind_name">Full name</label>
+            <input id="ind_name" type="text" placeholder="Adewale Balogun" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all text-base">
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_ind_name">Please enter your full name.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="ind_email">Email address</label>
+            <input id="ind_email" type="email" placeholder="you@example.com" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all text-base">
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_ind_email">Please enter a valid email address.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="ind_pw">Password</label>
+            <div class="relative">
+              <input id="ind_pw" type="password" placeholder="Min. 8 characters" required
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 pr-12 text-white placeholder-slate-500 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all text-base">
+              <button type="button" onclick="togglePwField('ind_pw', this)"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-lg">👁</button>
+            </div>
+            <!-- Strength indicator -->
+            <div class="mt-2">
+              <div class="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div id="ind_pwBar" class="strength-bar" style="width:0%"></div>
+              </div>
+              <p id="ind_pwLabel" class="text-xs mt-1 mono text-slate-600"></p>
+            </div>
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_ind_pw">Password must be at least 8 characters with a number.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="ind_track">What do you track?</label>
+            <select id="ind_track" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all text-base appearance-none cursor-pointer">
+              <option value="" disabled selected class="text-slate-500">Select one…</option>
+              <option value="personal">Personal finances</option>
+              <option value="freelance">Freelance or self-employment income</option>
+              <option value="both">Both personal and freelance</option>
+            </select>
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_ind_track">Please select what you track.</p>
+          </div>
+
+          <div class="flex items-start gap-3 mt-1">
+            <input id="ind_terms" type="checkbox" class="mt-0.5 w-4 h-4 accent-emerald-400 cursor-pointer flex-shrink-0">
+            <label for="ind_terms" class="text-sm text-slate-400 cursor-pointer leading-relaxed">
+              I agree to the <a href="#" class="text-emerald-400 hover:underline">Terms of Service</a> and <a href="#" class="text-emerald-400 hover:underline">Privacy Policy</a>
+            </label>
+          </div>
+
+          <div id="ind_signupErr" class="hidden bg-red-900/20 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm"></div>
+
+          <button id="ind_submitBtn" type="submit" disabled
+            class="w-full bg-emerald-400 text-slate-950 font-bold text-base py-4 rounded-xl transition-all opacity-50 cursor-not-allowed hover:brightness-110">
+            Create my account
+          </button>
+        </div>
+      </form>
+
+      <!-- ── BUSINESS FORM ────────────────────────────────────────────────── -->
+      <form id="formBiz" class="hidden" novalidate>
+        <div class="grid gap-5">
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_name">Full name</label>
+            <input id="biz_name" type="text" placeholder="Chidi Eze" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base">
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_biz_name">Please enter your full name.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_bizname">Business name</label>
+            <input id="biz_bizname" type="text" placeholder="Apex Ventures Ltd" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base">
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_biz_bizname">Please enter your business name.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_email">Email address</label>
+            <input id="biz_email" type="email" placeholder="you@company.com" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base">
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_biz_email">Please enter a valid email address.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_pw">Password</label>
+            <div class="relative">
+              <input id="biz_pw" type="password" placeholder="Min. 8 characters" required
+                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 pr-12 text-white placeholder-slate-500 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base">
+              <button type="button" onclick="togglePwField('biz_pw', this)"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-lg">👁</button>
+            </div>
+            <div class="mt-2">
+              <div class="h-1 bg-slate-700 rounded-full overflow-hidden">
+                <div id="biz_pwBar" class="strength-bar" style="width:0%"></div>
+              </div>
+              <p id="biz_pwLabel" class="text-xs mt-1 mono text-slate-600"></p>
+            </div>
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_biz_pw">Password must be at least 8 characters with a number.</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_rc">CAC / RC Number <span class="text-slate-600 font-normal">(optional)</span></label>
+            <input id="biz_rc" type="text" placeholder="RC-1234567"
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-500 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base">
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-slate-400 mb-1.5" for="biz_sector">Industry sector</label>
+            <select id="biz_sector" required
+              class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 transition-all text-base appearance-none cursor-pointer">
+              <option value="" disabled selected class="text-slate-500">Select industry…</option>
+              <option value="Retail & Distribution">Retail and trade</option>
+              <option value="Food & Hospitality">Food and hospitality</option>
+              <option value="Logistics & Transport">Logistics and transport</option>
+              <option value="Professional Services">Professional services</option>
+              <option value="Technology">Technology</option>
+              <option value="Manufacturing">Manufacturing</option>
+              <option value="Agriculture">Agriculture</option>
+              <option value="Other">Other</option>
+            </select>
+            <p class="field-err text-red-400 text-xs mt-1 hidden" id="err_biz_sector">Please select your industry sector.</p>
+          </div>
+
+          <div class="flex items-start gap-3 mt-1">
+            <input id="biz_terms" type="checkbox" class="mt-0.5 w-4 h-4 accent-indigo-400 cursor-pointer flex-shrink-0">
+            <label for="biz_terms" class="text-sm text-slate-400 cursor-pointer leading-relaxed">
+              I agree to the <a href="#" class="text-indigo-400 hover:underline">Terms of Service</a> and <a href="#" class="text-indigo-400 hover:underline">Privacy Policy</a>
+            </label>
+          </div>
+
+          <div id="biz_signupErr" class="hidden bg-red-900/20 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm"></div>
+
+          <button id="biz_submitBtn" type="submit" disabled
+            class="w-full bg-indigo-500 text-white font-bold text-base py-4 rounded-xl transition-all opacity-50 cursor-not-allowed hover:brightness-110">
+            Create business account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Confirmation ───────────────────────────────────────────────── -->
+  <div id="step3" class="hidden text-center py-16">
+    <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-8">
+      <svg width="40" height="40" fill="none" viewBox="0 0 40 40"><rect x="6" y="10" width="28" height="22" rx="3" stroke="#34D399" stroke-width="2"/><path d="M6 16l14 9 14-9" stroke="#34D399" stroke-width="2" stroke-linejoin="round"/></svg>
+    </div>
+    <h2 class="text-3xl font-black text-white mb-4 tracking-tight">Check your inbox</h2>
+    <p class="text-slate-400 text-base leading-relaxed max-w-sm mx-auto mb-8">
+      We sent a confirmation link to <strong id="confirmEmail" class="text-white"></strong>.
+      Click it to activate your account, then come back to sign in.
+    </p>
+    <a href="login.html" class="inline-flex items-center gap-2 text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">
+      ← Back to sign in
+    </a>
+  </div>
+
+</main>
+
+<!-- UI logic — plain script, always runs regardless of Supabase loading -->
+<script>
+let selectedType = null;
+
+function selectType(type) {
+  selectedType = type;
+  document.getElementById('cardInd').classList.remove('selected-ind', 'selected-biz');
+  document.getElementById('cardBiz').classList.remove('selected-ind', 'selected-biz');
+
+  if (type === 'individual') {
+    document.getElementById('cardInd').classList.add('selected-ind');
+    document.getElementById('typeLabel').className = 'mono text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-emerald-400/10 text-emerald-400 border border-emerald-400/20';
+    document.getElementById('typeLabel').textContent = 'Individual workspace';
+    document.getElementById('formInd').classList.remove('hidden');
+    document.getElementById('formBiz').classList.add('hidden');
+  } else {
+    document.getElementById('cardBiz').classList.add('selected-biz');
+    document.getElementById('typeLabel').className = 'mono text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+    document.getElementById('typeLabel').textContent = 'Business workspace';
+    document.getElementById('formBiz').classList.remove('hidden');
+    document.getElementById('formInd').classList.add('hidden');
+  }
+
+  document.getElementById('step2').classList.add('open');
+  setTimeout(() => {
+    document.getElementById('step2').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 100);
+}
+
+function clearType() {
+  selectedType = null;
+  document.getElementById('cardInd').classList.remove('selected-ind', 'selected-biz');
+  document.getElementById('cardBiz').classList.remove('selected-ind', 'selected-biz');
+  document.getElementById('step2').classList.remove('open');
+  setTimeout(() => {
+    document.getElementById('step1').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+}
+
+function togglePwField(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+}
+
+function calcStrength(pw) {
+  const hasLen = pw.length >= 8;
+  const hasNum = /[0-9]/.test(pw);
+  const hasSpc = /[!@#$%^&*]/.test(pw);
+  if (!pw.length) return null;
+  if (!hasLen || !hasNum) return 'weak';
+  if (hasLen && hasNum && !hasSpc) return 'fair';
+  return 'strong';
+}
+
+function applyStrength(barId, labelId, pw) {
+  const bar = document.getElementById(barId);
+  const lbl = document.getElementById(labelId);
+  const s = calcStrength(pw);
+  const map = {
+    weak:   { w: '33%',  bg: '#ef4444', label: 'Weak',   cls: 'text-red-400' },
+    fair:   { w: '66%',  bg: '#f59e0b', label: 'Fair',   cls: 'text-amber-400' },
+    strong: { w: '100%', bg: '#34D399', label: 'Strong', cls: 'text-emerald-400' },
+  };
+  const cfg = map[s] || { w: '0%', bg: '', label: '', cls: 'text-slate-600' };
+  bar.style.width = cfg.w;
+  bar.style.backgroundColor = cfg.bg;
+  lbl.textContent = cfg.label;
+  lbl.className = 'text-xs mt-1 mono ' + cfg.cls;
+}
+
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (msg) el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function hideErr(id) { document.getElementById(id).classList.add('hidden'); }
+function validateEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+function translateSignupError(msg) {
+  if (/user already registered/i.test(msg)) return 'An account with this email already exists. Try signing in.';
+  if (/password.*characters/i.test(msg)) return 'Password must be at least 8 characters.';
+  if (/too many requests/i.test(msg)) return 'Too many attempts. Please wait a moment and try again.';
+  return 'Something went wrong. Please try again.';
+}
+function setBtnLoading(btn, loading, defaultText) {
+  btn.disabled = loading;
+  btn.innerHTML = loading ? '<span class="spin">⟳</span> Creating account…' : defaultText;
+}
+function showConfirmation(email) {
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('confirmEmail').textContent = email;
+  document.getElementById('step3').classList.remove('hidden');
+}
+
+// Password strength listeners
+document.getElementById('ind_pw').addEventListener('input', e => applyStrength('ind_pwBar', 'ind_pwLabel', e.target.value));
+document.getElementById('biz_pw').addEventListener('input', e => applyStrength('biz_pwBar', 'biz_pwLabel', e.target.value));
+
+// Terms checkbox gating
+function wireTerms(checkboxId, btnId) {
+  const cb = document.getElementById(checkboxId);
+  const btn = document.getElementById(btnId);
+  cb.addEventListener('change', () => {
+    btn.disabled = !cb.checked;
+    btn.classList.toggle('opacity-50', !cb.checked);
+    btn.classList.toggle('cursor-not-allowed', !cb.checked);
+  });
+}
+wireTerms('ind_terms', 'ind_submitBtn');
+wireTerms('biz_terms', 'biz_submitBtn');
+</script>
+
+<!-- Auth logic — Supabase form submissions -->
+<script>
+const supabaseClient = window.supabase.createClient(
+  'https://cskgpnmgsrkuexbucrqr.supabase.co',
+  'sb_publishable_yHtOvUkDevZi_8e9XeCX0g_k7sjER12'
+);
+
+// ── INDIVIDUAL FORM SUBMIT ────────────────────────────────────────────────────
+document.getElementById('formInd').addEventListener('submit', async e => {
+  e.preventDefault();
+  hideErr('err_ind_name'); hideErr('err_ind_email'); hideErr('err_ind_pw'); hideErr('err_ind_track');
+  hideErr('ind_signupErr');
+
+  const fullName = document.getElementById('ind_name').value.trim();
+  const email    = document.getElementById('ind_email').value.trim();
+  const password = document.getElementById('ind_pw').value;
+  const track    = document.getElementById('ind_track').value;
+  let ok = true;
+
+  if (!fullName)                                      { showErr('err_ind_name');  ok = false; }
+  if (!validateEmail(email))                          { showErr('err_ind_email'); ok = false; }
+  if (!password || calcStrength(password) === 'weak') { showErr('err_ind_pw');   ok = false; }
+  if (!track)                                         { showErr('err_ind_track'); ok = false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('ind_submitBtn');
+  setBtnLoading(btn, true);
+
+  const { error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { data: { full_name: fullName, account_type: 'individual', track_type: track } },
+  });
+
+  setBtnLoading(btn, false, 'Create my account');
+  if (error) { showErr('ind_signupErr', translateSignupError(error.message)); return; }
+  showConfirmation(email);
+});
+
+// ── BUSINESS FORM SUBMIT ──────────────────────────────────────────────────────
+document.getElementById('formBiz').addEventListener('submit', async e => {
+  e.preventDefault();
+  hideErr('err_biz_name'); hideErr('err_biz_bizname'); hideErr('err_biz_email');
+  hideErr('err_biz_pw'); hideErr('err_biz_sector'); hideErr('biz_signupErr');
+
+  const fullName = document.getElementById('biz_name').value.trim();
+  const bizName  = document.getElementById('biz_bizname').value.trim();
+  const email    = document.getElementById('biz_email').value.trim();
+  const password = document.getElementById('biz_pw').value;
+  const rc       = document.getElementById('biz_rc').value.trim();
+  const sector   = document.getElementById('biz_sector').value;
+  let ok = true;
+
+  if (!fullName)                                      { showErr('err_biz_name');    ok = false; }
+  if (!bizName)                                       { showErr('err_biz_bizname'); ok = false; }
+  if (!validateEmail(email))                          { showErr('err_biz_email');   ok = false; }
+  if (!password || calcStrength(password) === 'weak') { showErr('err_biz_pw');     ok = false; }
+  if (!sector)                                        { showErr('err_biz_sector');  ok = false; }
+  if (!ok) return;
+
+  const btn = document.getElementById('biz_submitBtn');
+  setBtnLoading(btn, true);
+
+  const { error } = await supabaseClient.auth.signUp({
+    email, password,
+    options: { data: { full_name: fullName, account_type: 'business', business_name: bizName || null, rc_number: rc || null, industry_sector: sector } },
+  });
+
+  setBtnLoading(btn, false, 'Create business account');
+  if (error) { showErr('biz_signupErr', translateSignupError(error.message)); return; }
+  showConfirmation(email);
+});
+
+// ── GOOGLE OAUTH ──────────────────────────────────────────────────────────────
+document.getElementById('googleSignupBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('googleSignupBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Redirecting…';
+
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/auth-callback.html' },
+  });
+
+  if (error) {
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google';
+  }
+});
+</script>
+</body>
+</html>

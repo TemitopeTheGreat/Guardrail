@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signing in… — Guardrail Financial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(52,211,153,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(52,211,153,.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Account type modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,6,23,0.85);
+    backdrop-filter: blur(8px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .type-card-modal {
+    border: 2px solid rgba(255,255,255,0.08);
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .type-card-modal:hover { transform: translateY(-2px); }
+  .type-card-modal:hover.ind { border-color: #34D399; background: rgba(52,211,153,0.06); }
+  .type-card-modal:hover.biz { border-color: #4F46E5; background: rgba(79,70,229,0.06); }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-300 min-h-screen flex items-center justify-center relative">
+
+<!-- ── SPINNER PAGE ────────────────────────────────────────────────────────── -->
+<div id="loadingView" class="relative z-10 text-center">
+  <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 mb-6">
+    <svg class="spin w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity=".2"/>
+      <path d="M12 2a10 10 0 0110 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <p class="text-white font-semibold text-lg">Signing you in…</p>
+  <p class="text-slate-500 text-sm mt-2 mono">Verifying your session</p>
+</div>
+
+<!-- ── ACCOUNT TYPE MODAL (new Google users) ──────────────────────────────── -->
+<div id="typeModal" class="modal-backdrop hidden">
+  <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 w-full max-w-lg">
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-400/10 border border-emerald-400/20 mb-4">
+        <svg width="24" height="24" fill="none" viewBox="0 0 40 46"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2 class="text-2xl font-black text-white tracking-tight mb-2">One quick question</h2>
+      <p class="text-slate-400 text-sm">Are you signing up as an Individual or a Business?</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <div class="type-card-modal ind bg-slate-800 rounded-xl p-5 text-center" onclick="chooseType('individual')">
+        <svg width="32" height="32" class="mx-auto mb-3" fill="none" viewBox="0 0 40 40">
+          <circle cx="20" cy="13" r="7" stroke="#34D399" stroke-width="2" fill="rgba(52,211,153,.1)"/>
+          <path d="M6 35c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="#34D399" stroke-width="2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <p class="text-white font-bold text-sm">Individual</p>
+        <p class="text-slate-500 text-xs mt-1">Freelancer or sole trader</p>
+      </div>
+      <div class="type-card-modal biz bg-slate-800 rounded-xl p-5 text-center" onclick="chooseType('business')">
+        <svg width="32" height="32" class="mx-auto mb-3" fill="none" viewBox="0 0 40 40">
+          <rect x="5" y="16" width="30" height="20" rx="2" stroke="#4F46E5" stroke-width="2" fill="rgba(79,70,229,.1)"/>
+          <path d="M13 16V10a2 2 0 012-2h10a2 2 0 012 2v6" stroke="#4F46E5" stroke-width="2"/>
+          <line x1="5" y1="24" x2="35" y2="24" stroke="#4F46E5" stroke-width="2"/>
+        </svg>
+        <p class="text-white font-bold text-sm">Business</p>
+        <p class="text-slate-500 text-xs mt-1">SME or startup</p>
+      </div>
+    </div>
+
+    <div id="modalErr" class="hidden bg-red-900/20 border border-red-500/30 rounded-xl px-4 py-3 text-red-400 text-sm mb-4"></div>
+
+    <p class="text-slate-600 text-xs text-center mono">This sets your workspace type and cannot be changed later.</p>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://cskgpnmgsrkuexbucrqr.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_yHtOvUkDevZi_8e9XeCX0g_k7sjER12';
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let resolvedUser = null;
+
+async function getProfile(userId) {
+  const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
+  return error ? null : data;
+}
+
+function redirectToDashboard(accountType) {
+  const paths = { individual: 'dashboard/individual.html', business: 'dashboard/business.html' };
+  window.location.replace(paths[accountType] || 'login.html');
+}
+
+async function handleSession(session) {
+  if (!session) return false;
+  resolvedUser = session.user;
+  const profile = await getProfile(session.user.id);
+  if (profile) {
+    redirectToDashboard(profile.account_type);
+    return true;
+  }
+  document.getElementById('typeModal').classList.remove('hidden');
+  return true;
+}
+
+async function chooseType(accountType) {
+  if (!resolvedUser) return;
+  const modalErr = document.getElementById('modalErr');
+  modalErr.classList.add('hidden');
+
+  const { error } = await supabaseClient.from('profiles').insert({
+    id: resolvedUser.id,
+    full_name: resolvedUser.user_metadata?.full_name || resolvedUser.user_metadata?.name || resolvedUser.email,
+    account_type: accountType,
+  });
+
+  if (error && error.code !== '23505') {
+    modalErr.textContent = 'Could not save your account type. Please try again.';
+    modalErr.classList.remove('hidden');
+    return;
+  }
+  redirectToDashboard(accountType);
+}
+
+// Handle error in URL (e.g. otp_expired)
+const hashParams = new URLSearchParams(window.location.hash.slice(1));
+if (hashParams.get('error')) {
+  window.location.replace('login.html?error=' + hashParams.get('error_code'));
+}
+
+let redirectTimer = setTimeout(() => {
+  window.location.replace('login.html?error=auth_failed');
+}, 5000);
+
+supabaseClient.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    clearTimeout(redirectTimer);
+    await handleSession(session);
+  }
+});
+
+(async () => {
+  const { data } = await supabaseClient.auth.getSession();
+  if (data.session) {
+    clearTimeout(redirectTimer);
+    await handleSession(data.session);
+  }
+})();
+</script>
+</body>
+</html>

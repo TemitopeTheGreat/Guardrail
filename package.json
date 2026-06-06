@@ -1,0 +1,12 @@
+{
+  "name": "guardrail-financial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guardrail Financial — audit engine and file processing",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.0",
+    "dotenv": "^16.4.5",
+    "papaparse": "^5.4.1",
+    "pdfkit": "^0.15.1"
+  }
+}

@@ -6,6 +6,7 @@
 <title>Guardrail Financial — Automated Auditing for Nigerian SMEs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--gold:#febc2e;--red:#df3e3e;--s900:#0f172a;--s800:#1e293b}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -30,6 +31,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .nav-center{display:flex;align-items:center;gap:.4rem}
 .nav-link{padding:.7rem 1.4rem;border-radius:.8rem;font-size:1.35rem;font-weight:500;color:rgba(255,255,255,.55);text-decoration:none;transition:all .2s}
 .nav-link:hover{color:#fff;background:rgba(255,255,255,.05)}
+.nav-link.active{color:var(--mint);background:rgba(52,211,153,.08)}
 .nav-r{display:flex;align-items:center;gap:1rem;position:relative}
 .theme-btn{width:3.8rem;height:3.8rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.1);background:transparent;cursor:pointer;font-size:1.5rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .theme-btn:hover{background:rgba(52,211,153,.1);border-color:rgba(52,211,153,.3)}
@@ -203,6 +205,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .vis-line .err{color:#f87171}
 .vis-line .dim{color:rgba(255,255,255,.28)}
 .vis-result{background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.14);border-radius:.8rem;padding:1.2rem 1.6rem;margin-top:.6rem;font-size:1.2rem;color:var(--mint)}
+.terminal-line{opacity:0;transform:translateY(4px);transition:opacity 0.3s ease,transform 0.3s ease}
 
 /* TESTIMONIALS */
 .testi-sec{padding:8rem 0;position:relative;z-index:1}
@@ -343,6 +346,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div><div class="logo-name">Guardrail</div><span class="logo-fin">Financial</span></div>
   </a>
   <div class="nav-center">
+    <a href="index.html" class="nav-link active">Home</a>
     <a href="features.html" class="nav-link">Features</a>
     <a href="pricing.html" class="nav-link">Pricing</a>
     <a href="blog.html" class="nav-link">Blog</a>
@@ -369,16 +373,15 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="hero-left">
     <div class="hero-badge"><span class="bdot"></span>Trusted by 4,200+ Nigerian businesses</div>
     <h1 class="hero-h">
-      Your books.<br>
-      <span class="ac">Perfectly</span>
-      balanced.
+      The audit runs<br>
+      <span class="ac">while you sleep.</span>
     </h1>
     <p class="hero-sub">
       Drop in any bank statement. Guardrail cleans the mess, enforces <strong>∑ Debits = ∑ Credits</strong>, catches every variance, and hands you a <strong>FIRS-ready audit trail</strong> in under 14 seconds.
     </p>
     <div class="hero-cta">
-      <a href="login.html" class="btn-primary">Start Free Audit →</a>
-      <a href="dashboard.html" class="btn-ghost">Preview Dashboard</a>
+      <a href="signup.html" class="btn-primary">Get started free →</a>
+      <a href="login.html" class="btn-ghost">Sign in</a>
     </div>
     <div class="hero-trust">
       <span class="trust-item">Free forever plan</span>
@@ -593,14 +596,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <div class="pb-visual reveal-right">
       <div class="vis-bar"><div class="vd" style="background:#ff5f57"></div><div class="vd" style="background:#febc2e"></div><div class="vd" style="background:#28c840"></div></div>
-      <div class="vis-line dim">$ guardrail audit --file jan2026.csv --strict</div>
-      <div class="vis-line"><span class="kw">→ Parsing</span> <span class="val">847 transactions</span></div>
-      <div class="vis-line"><span class="kw">→ Deduplication</span> <span class="warn">3 duplicates removed</span></div>
-      <div class="vis-line"><span class="kw">→ Categorisation</span> <span class="val">844/844 matched (99.6%)</span></div>
-      <div class="vis-line"><span class="kw">→ VAT schedule</span> <span class="val">populated (7.5% FIRS)</span></div>
-      <div class="vis-line"><span class="kw">→ Balance check</span> <span class="val">∑D: ₦4,210,500 = ∑C: ₦4,210,500</span></div>
-      <div class="vis-line"><span class="kw">→ Audit score</span> <span class="val">98 / 100</span></div>
-      <div class="vis-result">✓ Audit complete in 13.8s · Export ready</div>
+      <div class="vis-line terminal-line dim">$ guardrail audit --file jan2026.csv --strict</div>
+      <div class="vis-line terminal-line"><span class="kw">→ Parsing</span> <span class="val">847 transactions</span></div>
+      <div class="vis-line terminal-line"><span class="kw">→ Deduplication</span> <span class="warn">3 duplicates removed</span></div>
+      <div class="vis-line terminal-line"><span class="kw">→ Categorisation</span> <span class="val">844/844 matched (99.6%)</span></div>
+      <div class="vis-line terminal-line"><span class="kw">→ VAT schedule</span> <span class="val">populated (7.5% FIRS)</span></div>
+      <div class="vis-line terminal-line"><span class="kw">→ Balance check</span> <span class="val">∑D: ₦4,210,500 = ∑C: ₦4,210,500</span></div>
+      <div class="vis-line terminal-line"><span class="kw">→ Audit score</span> <span class="val">98 / 100</span></div>
+      <div class="vis-result terminal-line">✓ Audit complete in 13.8s · Export ready</div>
     </div>
   </div>
 
@@ -675,7 +678,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div class="testi-metric-label">Recovered in 19 seconds</div>
         <p class="testi-q">"Guardrail caught <span class="hl">₦340,000 in untracked petty cash</span> the first time I uploaded our books. My accountant was embarrassed. I was absolutely delighted."</p>
         <div class="testi-a">
-          <div class="testi-av" style="background:linear-gradient(135deg,var(--mint),var(--indigo))">C</div>
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--mint),var(--indigo))">CO</div>
           <div><div class="testi-nm">Chukwuemeka Obi</div><div class="testi-rl">CEO, Obi Manufacturing Ltd · Lagos</div></div>
         </div>
       </div>
@@ -685,7 +688,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div class="testi-metric-label">Quarterly reconciliation time</div>
         <p class="testi-q">"We run three SPVs with separate accounts. Before Guardrail, reconciliation took two weeks every quarter. <span class="hl">Now it takes 40 minutes.</span> That's time I spend growing the business."</p>
         <div class="testi-a">
-          <div class="testi-av" style="background:linear-gradient(135deg,var(--indigo),#7c3aed)">A</div>
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--indigo),#7c3aed)">AA</div>
           <div><div class="testi-nm">Adeola Adeleke</div><div class="testi-rl">CFO, Adeleke Properties · Abuja</div></div>
         </div>
       </div>
@@ -695,7 +698,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <div class="testi-metric-label">In FIRS penalties avoided</div>
         <p class="testi-q">"As a freelancer handling 12 clients I was always late on VAT. <span class="hl">Guardrail's FIRS report saved me ₦180,000 in penalties</span> last year alone. It paid for itself in March."</p>
         <div class="testi-a">
-          <div class="testi-av" style="background:linear-gradient(135deg,var(--gold),#f97316)">T</div>
+          <div class="testi-av" style="background:linear-gradient(135deg,var(--gold),#f97316)">TA</div>
           <div><div class="testi-nm">Tolu Adesanya</div><div class="testi-rl">Freelance Creative Director · Lagos</div></div>
         </div>
       </div>
@@ -743,8 +746,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <h2 class="cta-h">See Guardrail work<br>on <span class="ac">your</span> actual books.</h2>
     <p class="cta-p">Upload any CSV from any Nigerian bank. We'll run a live audit in under 20 seconds — no credit card, no setup friction. Just clean books.</p>
     <div class="cta-btns">
-      <a href="login.html" class="btn-primary">Start Free Audit →</a>
-      <a href="dashboard.html" class="btn-ghost">Preview Dashboard</a>
+      <a href="signup.html" class="btn-primary">Get started free →</a>
+      <a href="login.html" class="btn-ghost">Sign in</a>
     </div>
     <p class="cta-note">Free forever plan available · FIRS-compliant · SOC 2 · ISO 27001 · Lagos, Nigeria</p>
   </div>
@@ -798,6 +801,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </footer>
 
+<script type="module">
+/* ── SESSION REDIRECT ── */
+import { getSession, getProfile, redirectToDashboard } from './js/auth.js';
+(async () => {
+  const session = await getSession();
+  if (!session) return;
+  const profile = await getProfile(session.user.id);
+  if (profile) redirectToDashboard(profile.account_type);
+})();
+</script>
 <script>
 /* ── THEME ── */
 function toggleTheme(){
@@ -904,6 +917,34 @@ function runTerminal(){
   timers.push(resetT);
 }
 document.addEventListener('DOMContentLoaded',()=>setTimeout(runTerminal,600));
+
+/* ── PILLAR TERMINAL ANIMATION ── */
+(function(){
+  const container=document.querySelector('.pb-visual');
+  if(!container) return;
+  const lines=container.querySelectorAll('.terminal-line');
+  if(!lines.length) return;
+  let loopTimer;
+  function runPillarTerminal(){
+    clearTimeout(loopTimer);
+    lines.forEach((line,i)=>{
+      line.style.opacity='0';
+      line.style.transform='translateY(4px)';
+      setTimeout(()=>{line.style.opacity='1';line.style.transform='translateY(0)';},i*400+200);
+    });
+    loopTimer=setTimeout(runPillarTerminal,lines.length*400+2800);
+  }
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting){
+        // wait for parent reveal transition (0.65s) before animating lines
+        setTimeout(runPillarTerminal,700);
+        obs.unobserve(entry.target);
+      }
+    });
+  },{threshold:0.3});
+  obs.observe(container);
+})();
 </script>
 </body>
 </html>

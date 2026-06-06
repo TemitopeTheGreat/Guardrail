@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Guardrail Financial</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(rgba(52,211,153,.015) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(52,211,153,.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .tab-active   { border-bottom: 2px solid #34D399; color: #fff; }
+  .tab-inactive { border-bottom: 2px solid transparent; color: #94a3b8; }
+  .tab-inactive:hover { color: #e2e8f0; }
+  .progress-bar { height: 6px; border-radius: 9999px; transition: width .5s ease; }
+  input, select { font-family: 'Inter', sans-serif; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-300 min-h-screen">
+
+<!-- ── NAV ─────────────────────────────────────────────────────────────────── -->
+<nav class="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-lg border-b border-slate-800/60">
+  <div class="max-w-screen-xl mx-auto px-6 flex items-stretch h-16 gap-6">
+    <a href="/index.html" class="flex items-center gap-2.5 shrink-0 no-underline">
+      <svg width="22" height="26" viewBox="0 0 40 46" fill="none">
+        <path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.12)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="text-white font-extrabold tracking-wide uppercase text-sm leading-none">Guardrail</div>
+        <div class="mono text-emerald-400 text-xs font-semibold tracking-widest">Financial</div>
+      </div>
+    </a>
+    <div class="flex-1 flex items-stretch overflow-x-auto">
+      <button data-tab="overview"  onclick="switchTab('overview')"  class="tab-btn tab-active  px-4 text-sm font-semibold whitespace-nowrap transition-colors">Overview</button>
+      <button data-tab="audit"     onclick="switchTab('audit')"     class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Audit &amp; Clean</button>
+      <button data-tab="ledger"    onclick="switchTab('ledger')"    class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Ledger</button>
+      <button data-tab="cashflow"  onclick="switchTab('cashflow')"  class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Cash Flow</button>
+      <button data-tab="balance"   onclick="switchTab('balance')"   class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Balance Sheet</button>
+      <button data-tab="tax"       onclick="switchTab('tax')"       class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Tax</button>
+      <button data-tab="goals"     onclick="switchTab('goals')"     class="tab-btn tab-inactive px-4 text-sm font-semibold whitespace-nowrap transition-colors">Goals</button>
+    </div>
+    <div class="flex items-center gap-4 shrink-0">
+      <div class="text-right hidden sm:block">
+        <div id="nav-name" class="text-white text-sm font-semibold">—</div>
+        <div class="text-emerald-400 mono text-xs tracking-widest">INDIVIDUAL</div>
+      </div>
+      <button onclick="signOut()" class="text-slate-500 hover:text-white text-sm transition-colors">Sign out</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── MAIN ────────────────────────────────────────────────────────────────── -->
+<main class="relative z-10 max-w-screen-xl mx-auto px-6 py-8">
+
+  <!-- SKELETON -->
+  <div id="skeleton" class="animate-pulse">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6"><div class="h-3 bg-slate-800 rounded w-20 mb-4"></div><div class="h-8 bg-slate-800 rounded w-32"></div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6"><div class="h-3 bg-slate-800 rounded w-20 mb-4"></div><div class="h-8 bg-slate-800 rounded w-32"></div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6"><div class="h-3 bg-slate-800 rounded w-20 mb-4"></div><div class="h-8 bg-slate-800 rounded w-32"></div></div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6"><div class="h-3 bg-slate-800 rounded w-20 mb-4"></div><div class="h-8 bg-slate-800 rounded w-32"></div></div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6"><div class="space-y-3"><div class="h-4 bg-slate-800 rounded"></div><div class="h-4 bg-slate-800 rounded w-4/5"></div><div class="h-4 bg-slate-800 rounded w-3/5"></div></div></div>
+  </div>
+
+  <!-- TAB: OVERVIEW -->
+  <div id="tab-overview" class="hidden">
+    <div id="overview-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8"></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div id="spending-breakdown" class="bg-slate-900 border border-slate-800 rounded-xl p-6"></div>
+      <div id="recent-txns"        class="bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto"></div>
+    </div>
+  </div>
+
+  <!-- TAB: AUDIT & CLEAN -->
+  <div id="tab-audit" class="hidden">
+    <div id="upload-container" class="mb-8"></div>
+    <div id="audit-history"    class="bg-slate-900 border border-slate-800 rounded-xl p-6"></div>
+  </div>
+
+  <!-- TAB: LEDGER -->
+  <div id="tab-ledger" class="hidden">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+      <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h2 class="text-white font-bold text-lg mb-4">General Ledger</h2>
+        <div id="ledgerTable"></div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h2 class="text-white font-bold text-lg mb-4">By Category</h2>
+        <div id="categorySummary"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CASH FLOW -->
+  <div id="tab-cashflow" class="hidden">
+    <div id="cashflow-content"></div>
+  </div>
+
+  <!-- TAB: BALANCE SHEET -->
+  <div id="tab-balance" class="hidden">
+    <div id="balance-content"></div>
+  </div>
+
+  <!-- TAB: TAX DASHBOARD -->
+  <div id="tab-tax" class="hidden">
+    <div class="space-y-8">
+      <!-- P&L Statement -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <div id="plStatement"></div>
+      </div>
+
+      <!-- Tax Computations -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- VAT -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 class="text-white font-bold text-lg mb-4">VAT Computation</h3>
+          <div id="vatComputation"></div>
+        </div>
+
+        <!-- CIT -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 class="text-white font-bold text-lg mb-4">Companies Income Tax (CIT)</h3>
+          <div id="citComputation"></div>
+        </div>
+
+        <!-- WHT -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 class="text-white font-bold text-lg mb-4">Withholding Tax (WHT)</h3>
+          <div id="whtComputation"></div>
+        </div>
+
+        <!-- PIT -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <h3 class="text-white font-bold text-lg mb-4">Personal Income Tax (PIT)</h3>
+          <div id="pitComputation"></div>
+        </div>
+      </div>
+
+      <!-- Tax Calendar -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <h3 class="text-white font-bold text-lg mb-4">Nigeria Tax Calendar</h3>
+        <div id="taxCalendar" class="overflow-x-auto"></div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="bg-amber-900/20 border border-amber-500/30 rounded-xl p-4">
+        <p class="text-amber-200 text-sm" id="taxDisclaimer"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: GOALS -->
+  <div id="tab-goals" class="hidden">
+    <div id="goals-list" class="mb-8"></div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <h3 class="text-white font-bold text-lg mb-6">Add New Goal</h3>
+      <form id="goals-form" onsubmit="handleAddGoal(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Label</label>
+          <input id="goal-label" type="text" placeholder="e.g. Monthly fuel cap" required
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-400 transition-colors text-sm">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Goal Type</label>
+          <select id="goal-type" required class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-400 transition-colors text-sm appearance-none">
+            <option value="" disabled selected>Select type…</option>
+            <option value="expense_cap">Expense Cap</option>
+            <option value="savings_target">Savings Target</option>
+            <option value="revenue_target">Revenue Target</option>
+            <option value="profit_buffer">Profit Buffer</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Limit Amount (NGN)</label>
+          <input id="goal-limit" type="number" min="0" step="0.01" placeholder="500000" required
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-400 transition-colors text-sm mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Current Spend (NGN)</label>
+          <input id="goal-spend" type="number" min="0" step="0.01" placeholder="0"
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 outline-none focus:border-emerald-400 transition-colors text-sm mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">Period</label>
+          <select id="goal-period" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-emerald-400 transition-colors text-sm appearance-none">
+            <option value="monthly" selected>Monthly</option>
+            <option value="weekly">Weekly</option>
+            <option value="quarterly">Quarterly</option>
+            <option value="annual">Annual</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" id="goals-submit-btn"
+            class="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-3 rounded-xl text-sm transition-colors">
+            Add Goal
+          </button>
+        </div>
+      </form>
+      <p id="goal-err" class="text-red-400 text-sm mt-3 hidden"></p>
+    </div>
+  </div>
+
+</main>
+
+<script src="/js/uploader.js"></script>
+<script src="/js/tax-nigeria.js"></script>
+<script src="/js/ledger-renderer.js"></script>
+<script src="/js/statements.js"></script>
+<script type="module">
+import { supabaseClient, requireAuth, getProfile, logout } from '/js/auth.js';
+
+let userId, accessToken;
+let latestAudit  = null;
+let transactions = [];
+let goals        = [];
+
+// ── FORMATTERS ───────────────────────────────────────────────────────────────
+function formatNGN(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return 'NGN 0.00';
+  return v.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
+}
+function scoreHex(s) { return +s >= 90 ? '#34D399' : +s >= 70 ? '#FBBF24' : '#F87171'; }
+function scoreCls(s) { return +s >= 90 ? 'text-emerald-400' : +s >= 70 ? 'text-amber-400' : 'text-red-400'; }
+function fmtDate(d) { try { return new Date(d).toLocaleDateString('en-GB'); } catch { return d || '—'; } }
+function monthLabel(ym) { const [y,m] = ym.split('-'); return new Date(+y,+m-1).toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }
+
+// ── EMPTY STATE ───────────────────────────────────────────────────────────────
+function emptyState(msg='No audit data yet', sub='Upload your first transaction file to get started') {
+  return `<div class="flex flex-col items-center justify-center py-20 text-center">
+    <svg class="mb-5 opacity-20" width="56" height="56" fill="none" viewBox="0 0 56 56">
+      <rect x="8" y="14" width="40" height="32" rx="4" stroke="#34D399" stroke-width="2"/>
+      <path d="M20 28h16M20 35h10" stroke="#34D399" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <p class="text-white font-bold text-xl mb-2">${msg}</p>
+    <p class="text-slate-500 text-sm mb-6 max-w-xs">${sub}</p>
+    <button onclick="switchTab('audit')" class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-sm transition-colors">Upload first file</button>
+  </div>`;
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+window.switchTab = function(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-' + name)?.classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const on = btn.dataset.tab === name;
+    btn.className = `tab-btn ${on ? 'tab-active' : 'tab-inactive'} px-4 text-sm font-semibold whitespace-nowrap transition-colors`;
+  });
+};
+
+// ── DATA HELPERS ──────────────────────────────────────────────────────────────
+function computeTotals(txns) {
+  const clean    = txns.filter(t => !t.is_flagged);
+  const income   = clean.filter(t => Number(t.credit) > 0).reduce((s,t) => s + Number(t.credit), 0);
+  const expenses = clean.filter(t => Number(t.debit)  > 0).reduce((s,t) => s + Number(t.debit),  0);
+  return { income, expenses, netWorth: income - expenses };
+}
+function groupByDebitCat(txns) {
+  const m = {};
+  txns.filter(t => !t.is_flagged && Number(t.debit)>0).forEach(t => { m[t.category||'other'] = (m[t.category||'other']||0)+Number(t.debit); });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+function groupByCreditCat(txns) {
+  const m = {};
+  txns.filter(t => !t.is_flagged && Number(t.credit)>0).forEach(t => { m[t.category||'other'] = (m[t.category||'other']||0)+Number(t.credit); });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+// Builds an account-class ledger section for the cash flow tab
+function buildLedger(txns, amtField) {
+  const isDebit = amtField === 'debit';
+  const col     = isDebit ? 'text-red-400' : 'text-emerald-400';
+  const clean   = txns.filter(t => !t.is_flagged && Number(t[amtField]) > 0);
+  if (!clean.length) return `<p class="text-slate-600 text-sm py-4">No transactions</p>`;
+  const grouped = {};
+  clean.forEach(t => {
+    const cat = t.category || 'other';
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(t);
+  });
+  return Object.entries(grouped)
+    .sort((a,b) => b[1].reduce((s,t)=>s+Number(t[amtField]),0) - a[1].reduce((s,t)=>s+Number(t[amtField]),0))
+    .map(([cat, rows]) => {
+      const sub = rows.reduce((s,t)=>s+Number(t[amtField]),0);
+      return `<div class="mb-5 last:mb-0">
+        <div class="flex justify-between items-center py-2 border-b border-slate-700 mb-1">
+          <span class="text-white font-bold text-sm capitalize">${cat}</span>
+          <span class="mono font-bold text-sm ${col}">${formatNGN(sub)}</span>
+        </div>
+        ${rows.map(t=>`<div class="flex items-center py-1.5 border-b border-slate-800/40 text-xs">
+          <span class="mono text-slate-500 w-20 shrink-0">${fmtDate(t.txn_date)}</span>
+          <span class="text-slate-400 flex-1 truncate px-3">${t.description||'—'}</span>
+          <span class="mono ${col} shrink-0">${formatNGN(Number(t[amtField]))}</span>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+}
+function groupByMonth(txns) {
+  const m = {};
+  txns.filter(t=>t.txn_date).forEach(t => {
+    const k = t.txn_date.slice(0,7);
+    if (!m[k]) m[k] = {in:0,out:0};
+    if (Number(t.credit)>0) m[k].in  += Number(t.credit);
+    if (Number(t.debit)>0)  m[k].out += Number(t.debit);
+  });
+  return Object.entries(m).sort((a,b)=>b[0].localeCompare(a[0]));
+}
+
+// ── UI PRIMITIVES ─────────────────────────────────────────────────────────────
+function metricCard(label, val, cls='text-white', sub='') {
+  return `<div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <p class="text-xs uppercase tracking-widest text-slate-500 mb-3">${label}</p>
+    <p class="text-2xl font-bold mono ${cls}">${val}</p>
+    ${sub ? `<p class="text-xs text-slate-600 mt-1 truncate">${sub}</p>` : ''}
+  </div>`;
+}
+function catBars(entries, total, col='#34D399') {
+  if (!entries.length) return '<p class="text-slate-600 text-sm">No data</p>';
+  const max = entries[0][1];
+  return entries.map(([cat,amt]) => {
+    const pct = total>0 ? ((amt/total)*100).toFixed(1) : 0;
+    const w   = max>0   ? ((amt/max)*100).toFixed(1)   : 0;
+    return `<div class="mb-3">
+      <div class="flex justify-between text-xs mb-1.5">
+        <span class="text-slate-300 font-medium capitalize">${cat}</span>
+        <span class="mono text-slate-400">${formatNGN(amt)} <span class="text-slate-600">${pct}%</span></span>
+      </div>
+      <div class="bg-slate-800 rounded-full h-1.5">
+        <div style="width:${w}%;background:${col}" class="h-1.5 rounded-full transition-all duration-500"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── RENDER: OVERVIEW ─────────────────────────────────────────────────────────
+function renderOverview() {
+  const { income, expenses, netWorth } = computeTotals(transactions);
+  const score = Number(latestAudit?.audit_score || 0);
+
+  document.getElementById('overview-cards').innerHTML = !latestAudit
+    ? metricCard('Net Worth','—') + metricCard('Total Income','—') + metricCard('Total Expenses','—') + metricCard('Audit Score','—')
+    : metricCard('Net Worth',      formatNGN(netWorth), netWorth>=0?'text-emerald-400':'text-red-400')
+    + metricCard('Total Income',   formatNGN(income),   'text-emerald-400')
+    + metricCard('Total Expenses', formatNGN(expenses), 'text-red-400')
+    + metricCard('Audit Score',    `${score}/100`,       scoreCls(score), latestAudit?.file_name||'');
+
+  const spend = document.getElementById('spending-breakdown');
+  spend.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Spending by Category</p>`
+    + (latestAudit ? catBars(groupByDebitCat(transactions), expenses) : emptyState('No data yet','Upload a file on the Audit tab'));
+
+  const recent = [...transactions].sort((a,b)=>(b.row_number||0)-(a.row_number||0)).slice(0,10);
+  const recEl = document.getElementById('recent-txns');
+  if (!latestAudit) { recEl.innerHTML = emptyState('No transactions yet',''); return; }
+  recEl.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Recent Transactions</p>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="border-b border-slate-800">
+        <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Date</th>
+        <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Description</th>
+        <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Category</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Amount</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider">Type</th>
+      </tr></thead>
+      <tbody>${recent.map(t => {
+        const dr = Number(t.debit)>0;
+        const am = dr ? Number(t.debit) : Number(t.credit);
+        return `<tr class="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+          <td class="py-3 pr-4 mono text-xs text-slate-400 whitespace-nowrap">${fmtDate(t.txn_date)}</td>
+          <td class="py-3 pr-4 text-slate-300 text-xs max-w-[180px] truncate">${t.description||'—'}${t.is_flagged?'<span class="ml-1 text-amber-400">⚑</span>':''}</td>
+          <td class="py-3 pr-4"><span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full capitalize">${t.category||'—'}</span></td>
+          <td class="py-3 pr-4 mono text-xs text-right ${dr?'text-red-400':'text-emerald-400'}">${formatNGN(am)}</td>
+          <td class="py-3 mono text-xs text-right font-bold ${dr?'text-red-400':'text-emerald-400'}">${dr?'DR':'CR'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+}
+
+// ── RENDER: AUDIT TAB ─────────────────────────────────────────────────────────
+async function renderAuditTab() {
+  window.supabaseClient = supabaseClient;
+  if (typeof window.initUploader === 'function') window.initUploader('upload-container');
+
+  const histEl = document.getElementById('audit-history');
+  histEl.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Audit History</p>
+    <div class="animate-pulse space-y-3"><div class="h-4 bg-slate-800 rounded"></div><div class="h-4 bg-slate-800 rounded w-3/4"></div></div>`;
+
+  const { data } = await supabaseClient.from('audits').select('*').order('created_at',{ascending:false});
+  const audits = data || [];
+
+  if (!audits.length) {
+    histEl.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Audit History</p>
+      <p class="text-slate-600 text-sm">No audits yet.</p>`;
+    return;
+  }
+  histEl.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Audit History</p>
+    <div class="overflow-x-auto"><table class="w-full text-sm">
+      <thead><tr class="border-b border-slate-800">
+        <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Date</th>
+        <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">File</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Score</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Rows</th>
+        <th class="text-center pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Status</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Report</th>
+        <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider">Del</th>
+      </tr></thead>
+      <tbody>${audits.map(a => {
+        const sc = Number(a.audit_score||0);
+        const stCls = a.status==='complete'?'text-emerald-400 bg-emerald-400/10':a.status==='failed'?'text-red-400 bg-red-400/10':'text-amber-400 bg-amber-400/10';
+        return `<tr class="border-b border-slate-800/50 hover:bg-slate-800/20 transition-colors">
+          <td class="py-3 pr-4 mono text-xs text-slate-400 whitespace-nowrap">${fmtDate(a.created_at)}</td>
+          <td class="py-3 pr-4 text-slate-300 text-xs max-w-[160px] truncate">${a.file_name}</td>
+          <td class="py-3 pr-4 mono text-xs text-right font-bold" style="color:${scoreHex(sc)}">${a.status==='complete'?sc+'/100':'—'}</td>
+          <td class="py-3 pr-4 mono text-xs text-right text-slate-400">${a.total_rows||'—'}</td>
+          <td class="py-3 pr-4 text-center"><span class="mono text-xs px-2 py-0.5 rounded-full ${stCls}">${a.status}</span></td>
+          <td class="py-3 pr-4 text-right">${a.status==='complete'
+            ? `<button onclick="dlReport('${a.id}',this)" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">↓ PDF</button>`
+            : '<span class="text-slate-700 text-xs">—</span>'}</td>
+          <td class="py-3 text-right">
+            <button onclick="deleteAudit('${a.id}',this)" title="Delete audit"
+              class="text-slate-600 hover:text-red-400 transition-colors text-base leading-none font-bold">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+            </button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div>`;
+}
+
+window.dlReport = async function(id, btnEl) {
+  const orig = btnEl?.textContent || '↓ PDF';
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '⟳ Generating…'; }
+  try {
+    // Always use a fresh token — the stored accessToken can expire
+    const { data: { session: s } } = await supabaseClient.auth.getSession();
+    const token = s?.access_token || accessToken;
+    const r = await fetch('/api/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ audit_id: id }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.success) throw new Error(d.error || d.detail || `Server error ${r.status}`);
+    if (!d.report_url) throw new Error('No download URL returned by server');
+    const a = document.createElement('a');
+    a.href = d.report_url; a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch(e) {
+    alert('Could not download report:\n' + e.message);
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = orig; }
+  }
+};
+
+window.deleteAudit = async function(id, btnEl) {
+  if (!confirm('Delete this audit and all its transactions? This cannot be undone.')) return;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '…'; }
+  try {
+    const { error: t1 } = await supabaseClient.from('transactions').delete().eq('audit_id', id);
+    if (t1) throw new Error(t1.message);
+    const { error: t2 } = await supabaseClient.from('audits').delete().eq('id', id);
+    if (t2) throw new Error(t2.message);
+    if (latestAudit?.id === id) {
+      latestAudit = null; transactions = [];
+      renderOverview(); renderCashFlow(); renderBalanceSheet();
+    }
+    renderAuditTab();
+  } catch(e) {
+    alert('Delete failed: ' + e.message);
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = '🗑'; }
+  }
+};
+
+// ── RENDER: CASH FLOW ─────────────────────────────────────────────────────────
+function renderCashFlow() {
+  const el = document.getElementById('cashflow-content');
+  if (!latestAudit) { el.innerHTML = emptyState(); return; }
+  const {income,expenses} = computeTotals(transactions);
+  const net = income-expenses;
+  const monthly = groupByMonth(transactions);
+  el.innerHTML = `
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+      ${metricCard('Total Inflow',  formatNGN(income),   'text-emerald-400')}
+      ${metricCard('Total Outflow', formatNGN(expenses), 'text-red-400')}
+      ${metricCard('Net Cash Flow', formatNGN(net),      net>=0?'text-emerald-400':'text-red-400')}
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 overflow-x-auto">
+        <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Monthly Breakdown</p>
+        <table class="w-full text-sm"><thead><tr class="border-b border-slate-800">
+          <th class="text-left pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Month</th>
+          <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Inflow</th>
+          <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider pr-4">Outflow</th>
+          <th class="text-right pb-3 text-xs text-slate-500 font-semibold uppercase tracking-wider">Net</th>
+        </tr></thead><tbody>
+        ${monthly.length ? monthly.map(([ym,v])=>{
+          const n=v.in-v.out;
+          return `<tr class="border-b border-slate-800/50">
+            <td class="py-3 pr-4 text-slate-300">${monthLabel(ym)}</td>
+            <td class="py-3 pr-4 mono text-xs text-right text-emerald-400">${formatNGN(v.in)}</td>
+            <td class="py-3 pr-4 mono text-xs text-right text-red-400">${formatNGN(v.out)}</td>
+            <td class="py-3 mono text-xs text-right font-bold ${n>=0?'text-emerald-400':'text-red-400'}">${formatNGN(n)}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="4" class="py-8 text-center text-slate-600 text-sm">No dated transactions found</td></tr>'}
+        </tbody></table>
+      </div>
+      <div class="space-y-5">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Inflow Sources</p>
+          ${catBars(groupByCreditCat(transactions), income, '#34D399')}
+        </div>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Outflow Breakdown</p>
+          ${catBars(groupByDebitCat(transactions), expenses, '#F87171')}
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Income by Account Class</p>
+        ${buildLedger(transactions,'credit')}
+        <div class="flex justify-between items-center pt-4 mt-3 border-t border-slate-700">
+          <span class="text-white font-bold text-sm">Total Income</span>
+          <span class="mono font-bold text-emerald-400">${formatNGN(income)}</span>
+        </div>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+        <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Expenses by Account Class</p>
+        ${buildLedger(transactions,'debit')}
+        <div class="flex justify-between items-center pt-4 mt-3 border-t border-slate-700">
+          <span class="text-white font-bold text-sm">Total Expenses</span>
+          <span class="mono font-bold text-red-400">${formatNGN(expenses)}</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── RENDER: BALANCE SHEET ─────────────────────────────────────────────────────
+function renderBalanceSheet() {
+  const el = document.getElementById('balance-content');
+  if (!latestAudit) { el.innerHTML = emptyState(); return; }
+  const {income,expenses,netWorth} = computeTotals(transactions);
+  const txnCount = transactions.filter(t=>!t.is_flagged).length;
+  el.innerHTML = `<div class="max-w-2xl space-y-5">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Assets</p>
+      <div class="flex justify-between items-center py-3 border-b border-slate-800/50">
+        <span class="text-slate-300">Estimated Cash Position</span>
+        <span class="mono font-bold text-emerald-400">${formatNGN(income)}</span>
+      </div>
+      <div class="flex justify-between items-center pt-3 text-xs text-slate-500">
+        <span>Total recorded inflows</span><span class="mono">${formatNGN(income)}</span>
+      </div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Liabilities</p>
+      <div class="flex justify-between items-center py-3 border-b border-slate-800/50">
+        <span class="text-slate-300">Total Recorded Outflows</span>
+        <span class="mono font-bold text-red-400">${formatNGN(expenses)}</span>
+      </div>
+      <div class="flex justify-between items-center pt-3 text-xs text-slate-500">
+        <span>Outflows not yet recovered</span><span class="mono">${formatNGN(expenses)}</span>
+      </div>
+    </div>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
+      <p class="text-slate-500 text-xs uppercase tracking-widest font-semibold mb-4">Net Worth</p>
+      <p class="text-5xl font-black mono mb-2 ${netWorth>=0?'text-emerald-400':'text-red-400'}">${formatNGN(netWorth)}</p>
+      <p class="text-slate-600 text-sm">Based on ${txnCount} transactions from your last audit</p>
+    </div>
+    <p class="text-slate-600 text-xs leading-relaxed">This is an estimated position based on uploaded transaction data. For a full balance sheet, upload all income and expense records.</p>
+  </div>`;
+}
+
+// ── RENDER: LEDGER ────────────────────────────────────────────────────────────
+function renderLedger() {
+  const el = document.getElementById('ledgerTable');
+  if (!latestAudit) { el.innerHTML = emptyState('No transactions', 'Upload a file to see the general ledger'); return; }
+
+  if (window.GuardrailLedger && window.GuardrailLedger.Ledger) {
+    window.ledgerInstance = new window.GuardrailLedger.Ledger(transactions);
+    window.GuardrailLedger.renderLedgerTable(window.ledgerInstance, 'ledgerTable', true);
+    window.GuardrailLedger.renderCategorySummary(window.ledgerInstance, 'categorySummary');
+  }
+}
+
+// ── RENDER: TAX DASHBOARD ─────────────────────────────────────────────────────
+function renderTaxDashboard() {
+  const el = document.getElementById('tab-tax');
+  if (!latestAudit || !transactions.length) {
+    el.innerHTML = emptyState('No tax data yet', 'Upload transactions to see tax estimates');
+    return;
+  }
+
+  // Set disclaimer
+  document.getElementById('taxDisclaimer').textContent = window.GuardrailTax?.DISCLAIMER || '';
+
+  // P&L
+  if (window.GuardrailStatements?.computePL) {
+    const pl = window.GuardrailStatements.computePL(transactions, 'Current Period');
+    window.GuardrailStatements.renderPL(pl, 'plStatement');
+  }
+
+  // VAT
+  if (window.GuardrailTax?.computeVAT) {
+    const vat = window.GuardrailTax.computeVAT(transactions);
+    const html = `
+      <table class="w-full text-sm">
+        <tr class="border-b border-slate-700"><td class="py-2">Taxable Sales</td><td class="text-right">${window.GuardrailTax.fmtNGN(vat.taxableSales)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Output VAT (7.5%)</td><td class="text-right font-bold text-emerald-400">${window.GuardrailTax.fmtNGN(vat.outputVAT)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Eligible Expenses</td><td class="text-right">${window.GuardrailTax.fmtNGN(vat.eligibleExp)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Input VAT (7.5%)</td><td class="text-right font-bold text-emerald-400">${window.GuardrailTax.fmtNGN(vat.inputVAT)}</td></tr>
+        <tr class="bg-slate-800 font-bold"><td class="py-2">Net VAT ${vat.isCredit ? '(Credit)' : '(Due)'}</td><td class="text-right ${vat.isCredit ? 'text-blue-400' : 'text-red-400'}">${window.GuardrailTax.fmtNGN(Math.abs(vat.netVATPayable))}</td></tr>
+        <tr class="text-xs text-slate-500 mt-4"><td colspan="2" class="pt-4">Filing deadline: ${vat.filingDeadline} (21st of next month)</td></tr>
+      </table>
+    `;
+    document.getElementById('vatComputation').innerHTML = html;
+  }
+
+  // CIT
+  if (window.GuardrailTax?.computeCIT) {
+    const {income,expenses} = computeTotals(transactions);
+    const cit = window.GuardrailTax.computeCIT(income, expenses);
+    const html = `
+      <table class="w-full text-sm">
+        <tr class="border-b border-slate-700"><td class="py-2">Total Revenue</td><td class="text-right">${window.GuardrailTax.fmtNGN(cit.totalRevenue)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Company Size</td><td class="text-right font-semibold">${cit.companySize}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Tax Rate</td><td class="text-right font-mono">${window.GuardrailTax.pct(cit.rateApplied)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Taxable Profit</td><td class="text-right">${window.GuardrailTax.fmtNGN(cit.taxableProfit)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Normal Tax</td><td class="text-right">${window.GuardrailTax.fmtNGN(cit.normalTax)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Minimum Tax (0.5%)</td><td class="text-right">${window.GuardrailTax.fmtNGN(cit.minimumTax)}</td></tr>
+        <tr class="bg-slate-800 font-bold"><td class="py-2">CIT Liability</td><td class="text-right text-red-400">${window.GuardrailTax.fmtNGN(cit.citLiability)}</td></tr>
+        <tr class="text-xs text-slate-500 mt-4"><td colspan="2" class="pt-4">Finance Act 2023 progressive rates</td></tr>
+      </table>
+    `;
+    document.getElementById('citComputation').innerHTML = html;
+  }
+
+  // WHT
+  if (window.GuardrailTax?.computeWHT) {
+    const wht = window.GuardrailTax.computeWHT(transactions);
+    const rows = Object.entries(wht.byCat).map(([cat, data]) => `
+      <tr class="border-b border-slate-700 text-xs">
+        <td class="py-2">${cat}</td>
+        <td class="text-right">${window.GuardrailTax.fmtNGN(data.amount)}</td>
+        <td class="text-right">${window.GuardrailTax.pct(data.rate)}</td>
+        <td class="text-right font-bold">${window.GuardrailTax.fmtNGN(data.wht)}</td>
+      </tr>
+    `).join('');
+    const html = `
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-slate-700 text-xs text-slate-500"><th class="text-left py-2">Category</th><th class="text-right">Amount</th><th class="text-right">Rate</th><th class="text-right">WHT Due</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="mt-4 pt-4 border-t border-slate-700 font-bold text-sm">
+        Total WHT: <span class="text-red-400 float-right">${window.GuardrailTax.fmtNGN(wht.totalWHT)}</span>
+      </div>
+      <div class="text-xs text-slate-500 mt-2">Remit by: ${wht.remittanceDeadline}</div>
+    `;
+    document.getElementById('whtComputation').innerHTML = html;
+  }
+
+  // PIT
+  if (window.GuardrailTax?.computePIT) {
+    const {income} = computeTotals(transactions);
+    const pit = window.GuardrailTax.computePIT(income);
+    const html = `
+      <table class="w-full text-sm">
+        <tr class="border-b border-slate-700"><td class="py-2">Gross Income</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.gross)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">CRA (Consolidated Relief Allowance)</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.totalCRA)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Taxable Income</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.taxable)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Computed Tax</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.computed)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Minimum Tax (1%)</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.minimumTax)}</td></tr>
+        <tr class="bg-slate-800 font-bold"><td class="py-2">PIT Liability</td><td class="text-right text-red-400">${window.GuardrailTax.fmtNGN(pit.pitLiability)}</td></tr>
+        <tr class="border-b border-slate-700"><td class="py-2">Monthly PAYE</td><td class="text-right">${window.GuardrailTax.fmtNGN(pit.monthlyPAYE)}</td></tr>
+        <tr class="text-xs text-slate-500"><td colspan="2" class="pt-2">Effective rate: ${window.GuardrailTax.pct(pit.effectiveRate)}</td></tr>
+      </table>
+    `;
+    document.getElementById('pitComputation').innerHTML = html;
+  }
+
+  // Tax Calendar
+  if (window.GuardrailTax?.TAX_CALENDAR) {
+    const rows = window.GuardrailTax.TAX_CALENDAR.map(item => `
+      <tr class="border-b border-slate-700/50 hover:bg-slate-800/50">
+        <td class="py-3 px-4 text-sm font-mono text-slate-400">${item.deadline}</td>
+        <td class="py-3 px-4 text-sm">${item.obligation}</td>
+        <td class="py-3 px-4 text-sm text-slate-400">${item.law}</td>
+        <td class="py-3 px-4 text-sm text-emerald-400 font-semibold">${item.authority}</td>
+      </tr>
+    `).join('');
+    const html = `
+      <table class="w-full text-sm">
+        <thead class="border-b border-slate-700 bg-slate-800/50"><tr><th class="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">Deadline</th><th class="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">Obligation</th><th class="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">Law</th><th class="text-left py-3 px-4 text-xs font-bold text-slate-400 uppercase">Authority</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    document.getElementById('taxCalendar').innerHTML = html;
+  }
+}
+
+// ── RENDER: GOALS ─────────────────────────────────────────────────────────────
+function renderGoals() {
+  const el = document.getElementById('goals-list');
+  if (!goals.length) {
+    el.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center"><p class="text-slate-500 text-sm">No active goals. Add one below.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Active Goals</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      ${goals.map(g => {
+        const lim  = Number(g.limit_amount);
+        const spd  = Number(g.current_spend);
+        const pct  = lim>0 ? Math.min((spd/lim)*100,100) : 0;
+        const over = spd > lim;
+        const bc   = pct>=100?'#F87171':pct>=80?'#FBBF24':'#34D399';
+        const tl   = {expense_cap:'Expense Cap',savings_target:'Savings Target',revenue_target:'Revenue Target',profit_buffer:'Profit Buffer'}[g.goal_type]||g.goal_type;
+        return `<div class="bg-slate-900 border ${over?'border-red-500/50':'border-slate-800'} rounded-xl p-5">
+          <div class="flex justify-between items-start mb-3">
+            <div><p class="text-white font-semibold text-sm mb-1">${g.label}</p>
+              <span class="text-xs mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">${tl}</span></div>
+            <button onclick="removeGoal('${g.id}')" class="text-slate-600 hover:text-red-400 transition-colors text-xl leading-none ml-2">×</button>
+          </div>
+          ${over?`<div class="bg-red-900/20 border border-red-500/30 rounded-lg px-3 py-2 mb-3"><p class="text-red-400 text-xs font-semibold">Guardrail breached by ${formatNGN(spd-lim)}</p></div>`:''}
+          <div class="flex justify-between text-xs text-slate-500 mb-1.5"><span class="mono">${formatNGN(spd)}</span><span class="mono">${formatNGN(lim)}</span></div>
+          <div class="bg-slate-800 rounded-full h-1.5 mb-2"><div style="width:${pct.toFixed(1)}%;background:${bc}" class="h-1.5 rounded-full transition-all duration-500"></div></div>
+          <div class="flex justify-between text-xs text-slate-600"><span>${pct.toFixed(0)}% used</span><span class="capitalize">${g.period}</span></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+window.handleAddGoal = async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('goals-submit-btn');
+  const err = document.getElementById('goal-err');
+  err.classList.add('hidden');
+  btn.disabled=true; btn.textContent='Saving…';
+  const { data, error } = await supabaseClient.from('goals').insert({
+    user_id:      userId,
+    label:        document.getElementById('goal-label').value.trim(),
+    goal_type:    document.getElementById('goal-type').value,
+    limit_amount: parseFloat(document.getElementById('goal-limit').value),
+    current_spend:parseFloat(document.getElementById('goal-spend').value)||0,
+    period:       document.getElementById('goal-period').value,
+    is_active:    true,
+  }).select().single();
+  btn.disabled=false; btn.textContent='Add Goal';
+  if (error) { err.textContent=error.message; err.classList.remove('hidden'); return; }
+  goals=[data,...goals]; renderGoals();
+  document.getElementById('goals-form').reset();
+};
+
+window.removeGoal = async function(id) {
+  await supabaseClient.from('goals').update({is_active:false}).eq('id',id).eq('user_id',userId);
+  goals=goals.filter(g=>g.id!==id); renderGoals();
+};
+
+window.signOut = async function() { await logout(); };
+
+// Auto-refresh after successful upload
+const _origFetch = window.fetch.bind(window);
+window.fetch = async function(...args) {
+  const res = await _origFetch(...args);
+  const url = typeof args[0]==='string' ? args[0] : '';
+  if (url.includes('/api/audit')) {
+    res.clone().json().then(d => { if (d?.success) setTimeout(reloadData, 800); }).catch(()=>{});
+  }
+  return res;
+};
+
+async function reloadData() {
+  const { data:a } = await supabaseClient.from('audits').select('*').eq('user_id',userId).eq('status','complete').order('created_at',{ascending:false}).limit(1);
+  latestAudit = a?.[0] || null;
+  if (latestAudit) {
+    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
+    transactions = t || [];
+  }
+  renderOverview(); renderCashFlow(); renderBalanceSheet(); renderLedger(); renderTaxDashboard();
+  renderAuditTab();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+async function init() {
+  const user = await requireAuth();
+  if (!user) return;
+  userId = user.id;
+  const { data:{ session } } = await supabaseClient.auth.getSession();
+  accessToken = session?.access_token || '';
+
+  const [prof, auditRes, goalsRes] = await Promise.all([
+    getProfile(userId),
+    supabaseClient.from('audits').select('*').eq('user_id',userId).eq('status','complete').order('created_at',{ascending:false}).limit(1),
+    supabaseClient.from('goals').select('*').eq('user_id',userId).eq('is_active',true).order('created_at',{ascending:false}),
+  ]);
+
+  document.getElementById('nav-name').textContent = prof?.full_name || user.email || '—';
+  latestAudit = auditRes.data?.[0] || null;
+  goals       = goalsRes.data || [];
+
+  if (latestAudit) {
+    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
+    transactions = t || [];
+  }
+
+  document.getElementById('skeleton').classList.add('hidden');
+  document.getElementById('tab-overview').classList.remove('hidden');
+
+  renderOverview();
+  renderAuditTab();
+  renderCashFlow();
+  renderBalanceSheet();
+  renderLedger();
+  renderTaxDashboard();
+  renderGoals();
+}
+
+init();
+</script>
+</body>
+</html>

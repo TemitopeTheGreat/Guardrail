@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login — Guardrail Financial</title>
+<title>Sign In — Guardrail Financial</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{--mint:#34D399;--indigo:#4F46E5;--slate:#020617;--gold:#febc2e;--red:#df3e3e}
 *{box-sizing:border-box;margin:0;padding:0}html{font-size:10px}
@@ -39,34 +40,40 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .r-panel{background:rgba(15,23,42,.7);backdrop-filter:blur(24px);display:flex;align-items:center;justify-content:center;padding:4rem}
 .form-card{width:100%;max-width:44rem}
 .fc-title{font-size:3.2rem;font-weight:900;letter-spacing:-.04em;color:#fff;margin-bottom:.6rem}
-.fc-sub{font-size:1.45rem;color:rgba(255,255,255,.45);margin-bottom:3.6rem}
+.fc-sub{font-size:1.45rem;color:rgba(255,255,255,.45);margin-bottom:2.4rem}
+.url-err-banner{background:rgba(223,62,62,.1);border:1px solid rgba(223,62,62,.22);border-radius:.8rem;padding:1rem 1.4rem;font-size:1.3rem;color:#ff8888;margin-bottom:2rem;display:none}
+.url-err-banner.show{display:block}
 .form-group{margin-bottom:2rem}
 .fg-lbl{display:block;font-size:1.3rem;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:.8rem}
 .fg-in{width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.4rem 1.6rem;font-family:'Inter',sans-serif;font-size:1.5rem;color:#fff;outline:none;transition:all .2s}
 .fg-in::placeholder{color:rgba(255,255,255,.22)}
 .fg-in:focus{border-color:var(--mint);background:rgba(52,211,153,.05);box-shadow:0 0 0 3px rgba(52,211,153,.1)}
-.fg-in.err{border-color:var(--red);box-shadow:0 0 0 3px rgba(223,62,62,.1)}
+.fg-in.is-err{border-color:var(--red);box-shadow:0 0 0 3px rgba(223,62,62,.1)}
+.field-err{font-size:1.2rem;color:#f87171;margin-top:.5rem;display:none}
+.field-err.show{display:block}
 .pw-wrap{position:relative}
-.pw-eye{position:absolute;right:1.4rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:1.5rem;transition:color .2s}
+.pw-eye{position:absolute;right:1.4rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:1.5rem;transition:color .2s;padding:.2rem}
 .pw-eye:hover{color:rgba(255,255,255,.65)}
-.row-opts{display:flex;justify-content:space-between;align-items:center;margin-top:.8rem;margin-bottom:2.8rem}
-.chk-lbl{display:flex;align-items:center;gap:.8rem;cursor:pointer;font-size:1.35rem;color:rgba(255,255,255,.5)}
-.chk-lbl input{width:1.6rem;height:1.6rem;accent-color:var(--mint);cursor:pointer}
-.forgot{font-size:1.35rem;color:rgba(52,211,153,.75);text-decoration:none;transition:color .2s}
+.forgot-row{display:flex;justify-content:flex-end;margin-top:.8rem;margin-bottom:2.8rem}
+.forgot{background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.35rem;color:rgba(52,211,153,.75);transition:color .2s;padding:0}
 .forgot:hover{color:var(--mint)}
-.err-msg{background:rgba(223,62,62,.1);border:1px solid rgba(223,62,62,.22);border-radius:.8rem;padding:1rem 1.4rem;font-size:1.3rem;color:#ff8888;margin-top:.6rem;display:none}
-.err-msg.show{display:block}
-.btn-login{width:100%;background:var(--mint);color:#020617;font-family:'Inter',sans-serif;font-size:1.6rem;font-weight:700;padding:1.7rem;border-radius:1rem;border:none;cursor:pointer;transition:all .25s;box-shadow:0 6px 28px rgba(52,211,153,.28);margin-bottom:2.4rem}
-.btn-login:hover{background:#6ee7b7;transform:translateY(-1px);box-shadow:0 10px 36px rgba(52,211,153,.45)}
+.forgot-msg{font-size:1.25rem;color:var(--mint);margin-top:.6rem;display:none}
+.forgot-msg.show{display:block}
+.btn-login{width:100%;background:var(--mint);color:#020617;font-family:'Inter',sans-serif;font-size:1.6rem;font-weight:700;padding:1.7rem;border-radius:1rem;border:none;cursor:pointer;transition:all .25s;box-shadow:0 6px 28px rgba(52,211,153,.28);margin-bottom:1.6rem;display:flex;align-items:center;justify-content:center;gap:.8rem}
+.btn-login:hover:not(:disabled){background:#6ee7b7;transform:translateY(-1px);box-shadow:0 10px 36px rgba(52,211,153,.45)}
+.btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.login-err{background:rgba(223,62,62,.1);border:1px solid rgba(223,62,62,.22);border-radius:.8rem;padding:1rem 1.4rem;font-size:1.3rem;color:#f87171;margin-bottom:1.6rem;display:none}
+.login-err.show{display:block}
 .divider{display:flex;align-items:center;gap:1.4rem;margin-bottom:2.4rem}
 .dv-line{flex:1;height:1px;background:rgba(255,255,255,.08)}
 .dv-txt{font-size:1.25rem;color:rgba(255,255,255,.28);white-space:nowrap}
-.social-row{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:2.8rem}
-.btn-soc{display:flex;align-items:center;justify-content:center;gap:.9rem;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.35rem;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.4rem;font-weight:600;color:rgba(255,255,255,.65);transition:all .2s}
-.btn-soc:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff}
-.signup-row{text-align:center;font-size:1.35rem;color:rgba(255,255,255,.4);margin-bottom:2.8rem}
+.btn-google{width:100%;display:flex;align-items:center;justify-content:center;gap:1rem;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.4rem;cursor:pointer;font-family:'Inter',sans-serif;font-size:1.45rem;font-weight:600;color:rgba(255,255,255,.75);transition:all .2s;margin-bottom:2.8rem}
+.btn-google:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.22);color:#fff}
+.signup-row{text-align:center;font-size:1.35rem;color:rgba(255,255,255,.4);margin-bottom:2.4rem}
 .signup-row a{color:var(--mint);text-decoration:none;font-weight:600}
-.tfa-banner{background:rgba(79,70,229,.08);border:1px solid rgba(79,70,229,.2);border-radius:1rem;padding:1.4rem 1.6rem;font-size:1.25rem;color:rgba(165,180,252,.78);display:flex;align-items:center;gap:.9rem;margin-bottom:2.4rem}
+.signup-row a:hover{text-decoration:underline}
 .sec-note{text-align:center;font-size:1.15rem;color:rgba(255,255,255,.22);font-family:'JetBrains Mono',monospace}
 .theme-fab{position:fixed;top:2rem;right:2rem;z-index:200;width:4rem;height:4rem;border-radius:.9rem;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);cursor:pointer;font-size:1.7rem;display:flex;align-items:center;justify-content:center;transition:all .25s}
 .theme-fab:hover{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3)}
@@ -76,20 +83,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 [data-theme="light"] .fg-lbl{color:rgba(10,13,16,.62)}
 [data-theme="light"] .fg-in{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:#0a0d10}
 [data-theme="light"] .fg-in:focus{border-color:var(--mint);background:rgba(52,211,153,.04)}
-[data-theme="light"] .chk-lbl{color:rgba(10,13,16,.52)}
-[data-theme="light"] .btn-soc{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:rgba(10,13,16,.68)}
+[data-theme="light"] .btn-google{background:rgba(0,0,0,.04);border-color:rgba(0,0,0,.12);color:rgba(10,13,16,.68)}
 [data-theme="light"] .signup-row{color:rgba(10,13,16,.44)}
 [data-theme="light"] .dv-txt{color:rgba(10,13,16,.3)}[data-theme="light"] .dv-line{background:rgba(0,0,0,.08)}
 [data-theme="light"] .sec-note{color:rgba(10,13,16,.25)}
 [data-theme="light"] .l-panel{background:linear-gradient(155deg,rgba(10,16,35,.96),rgba(10,16,35,.92));border-color:rgba(52,211,153,.12)}
-[data-theme="light"] .tfa-banner{background:rgba(79,70,229,.08);border-color:rgba(79,70,229,.18)}
 @media(max-width:900px){.login-wrap{grid-template-columns:1fr}.l-panel{display:none}.r-panel{padding:3rem 2rem;min-height:100vh}}
 </style>
 </head>
 <body>
-<button class="theme-fab" onclick="toggleTheme()" title="Toggle theme"><span id="themeIco">🌙</span></button>
+<button class="theme-fab" id="themeFab" title="Toggle theme"><span id="themeIco">🌙</span></button>
 
 <div class="login-wrap">
+  <!-- LEFT: Brand panel -->
   <div class="l-panel">
     <a href="index.html" class="l-logo">
       <svg width="32" height="36" viewBox="0 0 40 46" fill="none"><path d="M20 2L4 9v14c0 9.5 6.8 18.4 16 21 9.2-2.6 16-11.5 16-21V9L20 2z" fill="rgba(52,211,153,.1)" stroke="#34D399" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 23l5 5 9-10" stroke="#34D399" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -115,102 +121,199 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="l-foot">© 2026 Guardrail Financial · <a href="index.html">Home</a> · <a href="pricing.html">Pricing</a> · <a href="faq.html">FAQ</a></div>
   </div>
 
+  <!-- RIGHT: Form panel -->
   <div class="r-panel">
     <div class="form-card">
       <h1 class="fc-title">Welcome back.</h1>
       <p class="fc-sub">Sign in to your Guardrail workspace.</p>
 
-      <div class="form-group">
-        <label class="fg-lbl" for="email">Email address</label>
-        <input class="fg-in" id="email" type="email" placeholder="you@company.com" autocomplete="email">
-        <div class="err-msg" id="emailErr">Please enter a valid email address.</div>
+      <!-- URL error banner (auth_failed param) -->
+      <div class="url-err-banner" id="urlErrBanner">
+        Sign-in failed or link expired. Please try again.
       </div>
 
+      <!-- Email -->
+      <div class="form-group">
+        <label class="fg-lbl" for="email">Email address</label>
+        <input class="fg-in" id="email" type="email" placeholder="you@company.com" autocomplete="email" autofocus>
+        <div class="field-err" id="emailErr">Please enter a valid email address.</div>
+      </div>
+
+      <!-- Password -->
       <div class="form-group">
         <label class="fg-lbl" for="password">Password</label>
         <div class="pw-wrap">
           <input class="fg-in" id="password" type="password" placeholder="Your password" autocomplete="current-password" style="padding-right:4.8rem">
-          <button class="pw-eye" onclick="togglePw()" type="button" id="pwEye">👁</button>
+          <button class="pw-eye" type="button" id="pwEye" aria-label="Toggle password visibility">👁</button>
         </div>
-        <div class="err-msg" id="pwErr">Incorrect password. Please try again.</div>
       </div>
 
-      <div class="row-opts">
-        <label class="chk-lbl"><input type="checkbox" checked> Remember me for 30 days</label>
-        <a href="#" class="forgot">Forgot password?</a>
+      <!-- Forgot password row -->
+      <div class="forgot-row">
+        <button class="forgot" type="button" id="forgotBtn">Forgot password?</button>
       </div>
+      <div class="forgot-msg" id="forgotMsg">✓ Reset link sent to your inbox.</div>
 
-      <button class="btn-login" id="loginBtn" onclick="handleLogin()">Sign In →</button>
+      <!-- Auth error -->
+      <div class="login-err" id="loginErr"></div>
 
-      <div class="tfa-banner">🔒 Two-factor authentication can be enabled in your account settings for enhanced security.</div>
+      <!-- Submit -->
+      <button class="btn-login" id="loginBtn" type="button">Sign In →</button>
 
+      <!-- Divider -->
       <div class="divider"><div class="dv-line"></div><div class="dv-txt">or continue with</div><div class="dv-line"></div></div>
 
-      <div class="social-row">
-        <button class="btn-soc">
-          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-          Google
-        </button>
-        <button class="btn-soc">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M11.4 24V13.2H0V10.8h11.4V0h2.4v10.8H24v2.4H13.8V24h-2.4z" fill="currentColor" opacity=".5"/></svg>
-          Microsoft
-        </button>
-      </div>
+      <!-- Google OAuth -->
+      <button class="btn-google" type="button" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
 
-      <div class="signup-row">Don't have an account? <a href="pricing.html">Start for free →</a></div>
+      <!-- Sign up link -->
+      <div class="signup-row">Don't have an account? <a href="signup.html">Get started free →</a></div>
 
       <div class="sec-note">🔒 256-bit encrypted · SOC 2 compliant · ISO 27001</div>
     </div>
   </div>
 </div>
 
-<script>
-function togglePw(){
-  const i=document.getElementById('password');
-  const b=document.getElementById('pwEye');
-  const show=i.type==='password';
-  i.type=show?'text':'password';
-  b.textContent=show?'🙈':'👁';
-}
-function handleLogin(){
-  const email=document.getElementById('email').value.trim();
-  const pw=document.getElementById('password').value;
-  document.getElementById('emailErr').classList.remove('show');
-  document.getElementById('pwErr').classList.remove('show');
-  document.getElementById('email').classList.remove('err');
-  document.getElementById('password').classList.remove('err');
-  let ok=true;
-  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-    document.getElementById('emailErr').classList.add('show');
-    document.getElementById('email').classList.add('err');
-    ok=false;
-  }
-  if(!pw||pw.length<6){
-    document.getElementById('pwErr').classList.add('show');
-    document.getElementById('password').classList.add('err');
-    ok=false;
-  }
-  if(ok){
-    const btn=document.getElementById('loginBtn');
-    btn.textContent='Signing in...';
-    btn.style.opacity='.65';
-    btn.disabled=true;
-    setTimeout(()=>{ window.location.href='dashboard.html'; },1400);
-  }
-}
-function toggleTheme(){
-  const h=document.documentElement;
-  const n=h.dataset.theme==='light'?'dark':'light';
-  h.dataset.theme=n;
-  document.getElementById('themeIco').textContent=n==='light'?'☀️':'🌙';
-  localStorage.setItem('gr-theme',n);
-}
-(function(){
-  const t=localStorage.getItem('gr-theme')||'dark';
-  document.documentElement.dataset.theme=t;
-  document.addEventListener('DOMContentLoaded',()=>{ const i=document.getElementById('themeIco'); if(i) i.textContent=t==='light'?'☀️':'🌙'; });
+<script type="module">
+import { supabaseClient, getSession, getProfile, redirectToDashboard } from './js/auth.js';
+
+// ── SESSION REDIRECT ──────────────────────────────────────────────────────────
+(async () => {
+  const session = await getSession();
+  if (!session) return;
+  const profile = await getProfile(session.user.id);
+  if (profile) redirectToDashboard(profile.account_type);
 })();
-document.addEventListener('keydown',e=>{ if(e.key==='Enter') handleLogin(); });
+
+// ── URL ERROR PARAM ───────────────────────────────────────────────────────────
+if (new URLSearchParams(window.location.search).get('error') === 'auth_failed') {
+  document.getElementById('urlErrBanner').classList.add('show');
+}
+
+// ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
+function translateError(msg) {
+  if (/invalid login credentials/i.test(msg)) return 'Email or password is incorrect.';
+  if (/email not confirmed/i.test(msg)) return 'Please check your inbox and confirm your email first.';
+  if (/too many requests/i.test(msg)) return 'Too many attempts. Please wait a moment and try again.';
+  return 'Something went wrong. Please try again.';
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('loginErr');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function clearErrors() {
+  document.getElementById('loginErr').classList.remove('show');
+  document.getElementById('emailErr').classList.remove('show');
+  document.getElementById('email').classList.remove('is-err');
+}
+
+// ── PASSWORD TOGGLE ───────────────────────────────────────────────────────────
+document.getElementById('pwEye').addEventListener('click', () => {
+  const inp = document.getElementById('password');
+  const btn = document.getElementById('pwEye');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+});
+
+// ── FORGOT PASSWORD ───────────────────────────────────────────────────────────
+document.getElementById('forgotBtn').addEventListener('click', async () => {
+  const email = document.getElementById('email').value.trim();
+  const msg = document.getElementById('forgotMsg');
+  msg.classList.remove('show');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('emailErr').textContent = 'Enter your email above first.';
+    document.getElementById('emailErr').classList.add('show');
+    document.getElementById('email').classList.add('is-err');
+    return;
+  }
+
+  await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/auth-callback.html',
+  });
+  msg.classList.add('show');
+});
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function handleLogin() {
+  clearErrors();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('emailErr').classList.add('show');
+    document.getElementById('email').classList.add('is-err');
+    return;
+  }
+  if (!password) {
+    showLoginErr('Please enter your password.');
+    return;
+  }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Signing in…';
+
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'Sign In →';
+    showLoginErr(translateError(error.message));
+    return;
+  }
+
+  const profile = await getProfile(data.user.id);
+  redirectToDashboard(profile?.account_type);
+}
+
+document.getElementById('loginBtn').addEventListener('click', handleLogin);
+document.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+
+// ── GOOGLE OAUTH ──────────────────────────────────────────────────────────────
+document.getElementById('googleBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('googleBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">⟳</span> Redirecting…';
+
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin + '/auth-callback.html' },
+  });
+
+  if (error) {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google`;
+    showLoginErr('Google sign-in failed. Please try again.');
+  }
+});
+</script>
+
+<script>
+/* ── THEME ── */
+function toggleTheme() {
+  const h = document.documentElement;
+  const n = h.dataset.theme === 'light' ? 'dark' : 'light';
+  h.dataset.theme = n;
+  document.getElementById('themeIco').textContent = n === 'light' ? '☀️' : '🌙';
+  localStorage.setItem('gr-theme', n);
+}
+document.getElementById('themeFab').addEventListener('click', toggleTheme);
+(function () {
+  const t = localStorage.getItem('gr-theme') || 'dark';
+  document.documentElement.dataset.theme = t;
+  document.addEventListener('DOMContentLoaded', () => {
+    const i = document.getElementById('themeIco');
+    if (i) i.textContent = t === 'light' ? '☀️' : '🌙';
+  });
+})();
 </script>
 </body>
 </html>
