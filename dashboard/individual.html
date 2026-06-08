@@ -276,8 +276,10 @@ async function fetchAllTransactions(auditId) {
 
 function computeTotals(txns) {
   const clean    = txns.filter(t => !t.is_flagged);
-  const income   = clean.filter(t => Number(t.credit) > 0).reduce((s,t) => s + Number(t.credit), 0);
-  const expenses = clean.filter(t => Number(t.debit)  > 0).reduce((s,t) => s + Number(t.debit),  0);
+  const income   = clean.filter(t => Number(t.credit) > 0 && (t.financial_type === 'revenue' || !t.financial_type))
+                        .reduce((s,t) => s + Number(t.credit), 0);
+  const expenses = clean.filter(t => Number(t.debit)  > 0 && (t.financial_type === 'expense' || !t.financial_type))
+                        .reduce((s,t) => s + Number(t.debit),  0);
   return { income, expenses, netWorth: income - expenses };
 }
 function groupByDebitCat(txns) {
@@ -361,11 +363,12 @@ function renderOverview() {
   const { income, expenses, netWorth } = computeTotals(transactions);
   const score = Number(latestAudit?.audit_score || 0);
 
+  const netProfit = income - expenses;
   document.getElementById('overview-cards').innerHTML = !latestAudit
-    ? metricCard('Net Worth','—') + metricCard('Total Income','—') + metricCard('Total Expenses','—') + metricCard('Audit Score','—')
-    : metricCard('Net Worth',      formatNGN(netWorth), netWorth>=0?'text-emerald-400':'text-red-400')
-    + metricCard('Total Income',   formatNGN(income),   'text-emerald-400')
+    ? metricCard('Total Revenue','—') + metricCard('Total Expenses','—') + metricCard('Net Profit','—') + metricCard('Audit Score','—')
+    : metricCard('Total Revenue',  formatNGN(income),   'text-emerald-400')
     + metricCard('Total Expenses', formatNGN(expenses), 'text-red-400')
+    + metricCard(netProfit >= 0 ? 'Net Profit' : 'Net Loss', formatNGN(netProfit), netProfit>=0?'text-emerald-400':'text-red-400')
     + metricCard('Audit Score',    `${score}/100`,       scoreCls(score), latestAudit?.file_name||'');
 
   const spend = document.getElementById('spending-breakdown');
@@ -561,35 +564,77 @@ function renderCashFlow() {
 function renderBalanceSheet() {
   const el = document.getElementById('balance-content');
   if (!latestAudit) { el.innerHTML = emptyState(); return; }
-  const {income,expenses,netWorth} = computeTotals(transactions);
-  const txnCount = transactions.filter(t=>!t.is_flagged).length;
+
+  const clean        = transactions.filter(t => !t.is_flagged);
+  const totalCredits = clean.reduce((s,t) => s + Number(t.credit||0), 0);
+  const totalDebits  = clean.reduce((s,t) => s + Number(t.debit||0),  0);
+  const cashPosition = totalCredits - totalDebits;
+
+  const assetTxns       = clean.filter(t => t.financial_type === 'asset');
+  const totalFixedAssets = assetTxns.reduce((s,t) => s + Number(t.debit||0), 0);
+  const totalAssets      = cashPosition + totalFixedAssets;
+
+  const liabTxns        = clean.filter(t => t.financial_type === 'liability_receipt');
+  const totalLiabilities = liabTxns.reduce((s,t) => s + Number(t.credit||0), 0);
+
+  const { income, expenses } = computeTotals(transactions);
+  const equity   = income - expenses;
+  const balances = Math.abs(totalAssets - (totalLiabilities + equity)) < 1;
+
   el.innerHTML = `<div class="max-w-2xl space-y-5">
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
       <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Assets</p>
-      <div class="flex justify-between items-center py-3 border-b border-slate-800/50">
-        <span class="text-slate-300">Estimated Cash Position</span>
-        <span class="mono font-bold text-emerald-400">${formatNGN(income)}</span>
+      <div class="space-y-1 mb-4">
+        <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+          <span class="text-slate-400 text-sm">Current Assets — Cash Position</span>
+          <span class="mono font-semibold text-emerald-400">${formatNGN(cashPosition)}</span>
+        </div>
+        ${assetTxns.length ? `<p class="text-slate-500 text-xs uppercase tracking-widest pt-3 pb-1 font-semibold">Fixed Assets</p>
+          ${assetTxns.map(t=>`<div class="flex justify-between items-center py-1.5 border-b border-slate-800/30">
+            <span class="text-slate-400 text-xs truncate max-w-xs">${t.description||'Asset purchase'}</span>
+            <span class="mono text-xs text-slate-300">${formatNGN(Number(t.debit||0))}</span>
+          </div>`).join('')}` : ''}
       </div>
-      <div class="flex justify-between items-center pt-3 text-xs text-slate-500">
-        <span>Total recorded inflows</span><span class="mono">${formatNGN(income)}</span>
+      <div class="flex justify-between items-center pt-2 border-t border-slate-700">
+        <span class="text-white font-bold text-sm">Total Assets</span>
+        <span class="mono font-bold text-emerald-400">${formatNGN(totalAssets)}</span>
       </div>
     </div>
     <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
       <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-5">Liabilities</p>
-      <div class="flex justify-between items-center py-3 border-b border-slate-800/50">
-        <span class="text-slate-300">Total Recorded Outflows</span>
-        <span class="mono font-bold text-red-400">${formatNGN(expenses)}</span>
-      </div>
-      <div class="flex justify-between items-center pt-3 text-xs text-slate-500">
-        <span>Outflows not yet recovered</span><span class="mono">${formatNGN(expenses)}</span>
+      ${liabTxns.length
+        ? liabTxns.map(t=>`<div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+            <span class="text-slate-400 text-sm truncate max-w-xs">${t.description||'Loan / liability'}</span>
+            <span class="mono font-semibold text-red-400">${formatNGN(Number(t.credit||0))}</span>
+          </div>`).join('')
+        : '<p class="text-slate-600 text-sm py-2">No recorded liabilities</p>'}
+      <div class="flex justify-between items-center pt-3 border-t border-slate-700 mt-2">
+        <span class="text-white font-bold text-sm">Total Liabilities</span>
+        <span class="mono font-bold text-red-400">${formatNGN(totalLiabilities)}</span>
       </div>
     </div>
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
-      <p class="text-slate-500 text-xs uppercase tracking-widest font-semibold mb-4">Net Worth</p>
-      <p class="text-5xl font-black mono mb-2 ${netWorth>=0?'text-emerald-400':'text-red-400'}">${formatNGN(netWorth)}</p>
-      <p class="text-slate-600 text-sm">Based on ${txnCount} transactions from your last audit</p>
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <p class="text-slate-400 text-xs uppercase tracking-widest font-semibold mb-4">Equity</p>
+      <div class="flex justify-between items-center py-2 border-b border-slate-800/50">
+        <span class="text-slate-400 text-sm">Retained Earnings (Revenue − Expenses)</span>
+        <span class="mono font-semibold ${equity>=0?'text-emerald-400':'text-red-400'}">${formatNGN(equity)}</span>
+      </div>
+      <div class="flex justify-between items-center pt-3 border-t border-slate-700 mt-2">
+        <span class="text-white font-bold text-sm">Total Equity</span>
+        <span class="mono font-bold ${equity>=0?'text-emerald-400':'text-red-400'}">${formatNGN(equity)}</span>
+      </div>
     </div>
-    <p class="text-slate-600 text-xs leading-relaxed">This is an estimated position based on uploaded transaction data. For a full balance sheet, upload all income and expense records.</p>
+    <div class="bg-slate-900 border ${balances?'border-emerald-500/40':'border-red-500/40'} rounded-xl p-5">
+      <div class="flex items-center gap-3">
+        <span class="text-lg font-bold ${balances?'text-emerald-400':'text-red-400'}">${balances?'✓':'⚠'}</span>
+        <div class="flex-1">
+          <p class="text-white font-bold text-sm">Accounting Equation</p>
+          <p class="text-slate-400 text-xs mt-0.5">Assets (${formatNGN(totalAssets)}) = Liabilities (${formatNGN(totalLiabilities)}) + Equity (${formatNGN(equity)})</p>
+        </div>
+        <span class="mono text-xs font-bold ${balances?'text-emerald-400':'text-red-400'}">${balances?'BALANCED':'NOT BALANCED'}</span>
+      </div>
+    </div>
+    <p class="text-slate-600 text-xs leading-relaxed">Estimated from uploaded transaction data. Upload all income and expense records for a complete picture.</p>
   </div>`;
 }
 

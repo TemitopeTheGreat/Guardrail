@@ -252,7 +252,7 @@ function fmtDate(d) { try { return new Date(d).toLocaleDateString('en-GB'); } ca
 function monthLabel(ym) { const [y,m]=ym.split('-'); return new Date(+y,+m-1).toLocaleDateString('en-GB',{month:'short',year:'numeric'}); }
 
 // ── P&L CATEGORIES ────────────────────────────────────────────────────────────
-const REV_CATS        = new Set(['income','transfer']);
+const REV_CATS        = new Set(['income']);
 const COST_SALES_CATS = new Set(['purchases','fuel','logistics']);
 // Operating expenses: salary, rent, utilities, telecoms, tax, other (everything else debit)
 
@@ -297,11 +297,13 @@ async function fetchAllTransactions(auditId) {
 }
 
 function computeTotals(txns) {
-  const clean    = txns.filter(t=>!t.is_flagged);
-  const revenue  = clean.reduce((s,t)=>s+Number(t.credit||0),0);
-  const costs    = clean.reduce((s,t)=>s+Number(t.debit||0), 0);
-  const profit   = revenue - costs;
-  const margin   = revenue>0 ? ((profit/revenue)*100) : 0;
+  const clean   = txns.filter(t => !t.is_flagged);
+  const revenue = clean.filter(t => Number(t.credit) > 0 && (t.financial_type === 'revenue' || !t.financial_type))
+                       .reduce((s,t) => s + Number(t.credit||0), 0);
+  const costs   = clean.filter(t => Number(t.debit)  > 0 && (t.financial_type === 'expense' || !t.financial_type))
+                       .reduce((s,t) => s + Number(t.debit||0), 0);
+  const profit  = revenue - costs;
+  const margin  = revenue > 0 ? ((profit / revenue) * 100) : 0;
   return { revenue, costs, profit, margin };
 }
 function groupByDebitCat(txns) {
@@ -346,12 +348,13 @@ function plLine(label,val,cls='text-slate-300',bold=false) {
 function renderOverview() {
   const { revenue, costs, profit, margin } = computeTotals(transactions);
 
+  const score = Number(latestAudit?.audit_score || 0);
   document.getElementById('overview-cards').innerHTML = !latestAudit
-    ? metricCard('Total Revenue','—')+metricCard('Total Costs','—')+metricCard('Net Profit','—')+metricCard('Profit Margin','—')
-    : metricCard('Total Revenue',  formatNGN(revenue),           'text-emerald-400')
-    + metricCard('Total Costs',    formatNGN(costs),             'text-red-400')
-    + metricCard('Net Profit',     formatNGN(profit),            profit>=0?'text-emerald-400':'text-red-400')
-    + metricCard('Profit Margin',  margin.toFixed(1)+'%',        margin>=0?'text-indigo-400':'text-red-400');
+    ? metricCard('Total Revenue','—')+metricCard('Total Expenses','—')+metricCard('Net Profit','—')+metricCard('Audit Score','—')
+    : metricCard('Total Revenue',  formatNGN(revenue),        'text-emerald-400')
+    + metricCard('Total Expenses', formatNGN(costs),          'text-red-400')
+    + metricCard(profit>=0?'Net Profit':'Net Loss', formatNGN(profit), profit>=0?'text-emerald-400':'text-red-400')
+    + metricCard('Audit Score',    `${score}/100`,             scoreCls(score), latestAudit?.file_name||'');
 
   // Revenue vs costs bars
   const barsEl = document.getElementById('rev-cost-bars');
@@ -454,26 +457,26 @@ function renderPL() {
   const el = document.getElementById('pl-content');
   if (!latestAudit) { el.innerHTML = emptyState(); return; }
 
-  const clean  = transactions.filter(t=>!t.is_flagged);
-  // Revenue: credit transactions in revenue categories
-  const revTxns  = clean.filter(t=>Number(t.credit)>0 && REV_CATS.has(t.category||''));
-  const otherRev = clean.filter(t=>Number(t.credit)>0 && !REV_CATS.has(t.category||''));
-  const allRev   = [...revTxns, ...otherRev];
+  const clean  = transactions.filter(t => !t.is_flagged);
+  // Revenue: credits with financial_type = 'revenue' (or unclassified credits)
+  const allRev   = clean.filter(t => Number(t.credit) > 0 && (t.financial_type === 'revenue' || !t.financial_type));
   const revByCat = {};
-  allRev.forEach(t=>{ revByCat[t.category||'income']=(revByCat[t.category||'income']||0)+Number(t.credit); });
-  const totalRev = Object.values(revByCat).reduce((s,v)=>s+v,0);
+  allRev.forEach(t => { revByCat[t.category||'income'] = (revByCat[t.category||'income']||0) + Number(t.credit); });
+  const totalRev = Object.values(revByCat).reduce((s,v) => s+v, 0);
 
-  // Cost of sales
+  // Cost of sales: expense transactions in cost-of-sales categories
   const cosByCat = {};
-  clean.filter(t=>Number(t.debit)>0&&COST_SALES_CATS.has(t.category||'')).forEach(t=>{ cosByCat[t.category||'']=(cosByCat[t.category||'']||0)+Number(t.debit); });
-  const totalCos = Object.values(cosByCat).reduce((s,v)=>s+v,0);
+  clean.filter(t => Number(t.debit) > 0 && (t.financial_type === 'expense' || !t.financial_type) && COST_SALES_CATS.has(t.category||''))
+       .forEach(t => { cosByCat[t.category||''] = (cosByCat[t.category||'']||0) + Number(t.debit); });
+  const totalCos    = Object.values(cosByCat).reduce((s,v) => s+v, 0);
   const grossProfit = totalRev - totalCos;
-  const grossMargin = totalRev>0?((grossProfit/totalRev)*100).toFixed(1):'0.0';
+  const grossMargin = totalRev > 0 ? ((grossProfit/totalRev)*100).toFixed(1) : '0.0';
 
-  // Operating expenses
+  // Operating expenses: expense transactions NOT in cost-of-sales
   const opexByCat = {};
-  clean.filter(t=>Number(t.debit)>0&&!COST_SALES_CATS.has(t.category||'')).forEach(t=>{ opexByCat[t.category||'other']=(opexByCat[t.category||'other']||0)+Number(t.debit); });
-  const totalOpex = Object.values(opexByCat).reduce((s,v)=>s+v,0);
+  clean.filter(t => Number(t.debit) > 0 && (t.financial_type === 'expense' || !t.financial_type) && !COST_SALES_CATS.has(t.category||''))
+       .forEach(t => { opexByCat[t.category||'other'] = (opexByCat[t.category||'other']||0) + Number(t.debit); });
+  const totalOpex = Object.values(opexByCat).reduce((s,v) => s+v, 0);
   const netProfit = grossProfit - totalOpex;
 
   el.innerHTML = `<div class="max-w-2xl space-y-5">
@@ -685,7 +688,7 @@ function renderTaxDashboard() {
 
   // CIT
   if (window.GuardrailTax?.computeCIT) {
-    const {income,expenses} = computeTotals(transactions);
+    const { revenue: income, costs: expenses } = computeTotals(transactions);
     const cit = window.GuardrailTax.computeCIT(income, expenses);
     const html = `
       <table class="w-full text-sm">

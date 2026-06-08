@@ -72,57 +72,92 @@ function cleanAmount(val) {
   return Math.round(num * 100) / 100;
 }
 
-// ── CATEGORISATION ────────────────────────────────────────────────────────────
-const CATEGORY_RULES = [
-  { pattern: /salary|payroll|wages/i,              category: 'salary' },
-  { pattern: /fuel|diesel|petrol|generator/i,      category: 'fuel' },
-  { pattern: /rent|lease/i,                        category: 'rent' },
-  { pattern: /electricity|nepa|ekedc|ibedc/i,      category: 'utilities' },
-  { pattern: /internet|data|mtn|airtel/i,          category: 'telecoms' },
-  { pattern: /transfer|payment received/i,         category: 'income' },
-  { pattern: /purchase|bought|market/i,            category: 'purchases' },
-  { pattern: /tax|vat|firs/i,                      category: 'tax' },
-];
+// ── CLASSIFICATION ENGINE ─────────────────────────────────────────────────────
+function classifyTransaction(description, debit, credit) {
+  const d = (description || '').toLowerCase().trim();
+  const isIncome  = credit > 0 && (debit  === 0 || debit  == null);
+  const isExpense = debit  > 0 && (credit === 0 || credit == null);
 
-function categorise(description) {
-  const desc = (description || '').toLowerCase();
-  const match = CATEGORY_RULES.find(r => r.pattern.test(desc));
-  return match ? match.category : 'other';
+  const revenueKeywords  = ['payment received','client payment','retainer','invoice payment','transfer from','trf frm','nip credit','inflow','sales','revenue','freelance','consulting fee','service fee','commission','rental income','contract payment','settlement','refund received','rebate','opening balance','deposit from','proceeds'];
+  const salaryKeywords   = ['salary','payroll','wages','staff payment','employee','net pay','monthly pay','paye','allowance','bonus payment','gratuity','pension','nsitf','nhf contribution'];
+  const fuelKeywords     = ['fuel','diesel','petrol','generator','filling station','conoil','oando','mobil','nnpc','ardova','gas station','lubricant','engine oil'];
+  const rentKeywords     = ['rent','lease','tenancy','office space','warehouse','shop rent','annual rent','property payment','accommodation'];
+  const utilityKeywords  = ['nepa','phcn','ekedc','ibedc','aedc','electricity','water board','lawma','waste','utility','ikedc','kedco'];
+  const telecomKeywords  = ['mtn','airtel','glo','9mobile','etisalat','spectranet','smile','ipnx','swift','airtime','data subscription','internet','broadband','recharge','telco'];
+  const taxKeywords      = ['vat','firs','tax','withholding','wht','cit','company income','paye remit','lirs','state revenue','customs','duty','stamp duty','levies','irs payment'];
+  const bankKeywords     = ['bank charge','commission on turnover','cot','sms alert','maintenance fee','card fee','transfer fee','atm fee','annual charge','overdraft interest','interest charge','vat on cot','e-banking'];
+  const purchaseKeywords = ['purchase','bought','market','supplies','inventory','stock','raw material','goods','pos purchase','online purchase','order','procurement','vendor payment','supplier'];
+  const logisticsKeywords= ['logistics','transport','delivery','courier','dispatch','shipping','freight','uber','bolt','taxify','bus fare','vehicle','maintenance vehicle','tyre','spare part'];
+  const loanKeywords     = ['loan','repayment','installment','mortgage','overdraft','credit facility','debt','borrowed','borrowing'];
+  const assetKeywords    = ['equipment','machinery','computer','laptop','phone','furniture','air conditioner','ac unit','generator purchase','vehicle purchase','car','property','land','building','asset'];
+
+  const match = (keywords) => keywords.some(kw => d.includes(kw));
+
+  if (isExpense && match(assetKeywords) && debit >= 50000) {
+    return { category: 'asset', financialType: 'asset' };
+  }
+  if (match(loanKeywords)) {
+    return { category: 'liability', financialType: isIncome ? 'liability_receipt' : 'liability_payment' };
+  }
+  if (isIncome) {
+    if (match(revenueKeywords)) return { category: 'income', financialType: 'revenue' };
+    return { category: 'income', financialType: 'revenue' };
+  }
+  if (isExpense) {
+    if (match(salaryKeywords))    return { category: 'salary',       financialType: 'expense' };
+    if (match(fuelKeywords))      return { category: 'fuel',         financialType: 'expense' };
+    if (match(rentKeywords))      return { category: 'rent',         financialType: 'expense' };
+    if (match(utilityKeywords))   return { category: 'utilities',    financialType: 'expense' };
+    if (match(telecomKeywords))   return { category: 'telecoms',     financialType: 'expense' };
+    if (match(taxKeywords))       return { category: 'tax',          financialType: 'expense' };
+    if (match(bankKeywords))      return { category: 'bank_charges', financialType: 'expense' };
+    if (match(purchaseKeywords))  return { category: 'purchases',    financialType: 'expense' };
+    if (match(logisticsKeywords)) return { category: 'logistics',    financialType: 'expense' };
+    return { category: 'other', financialType: 'expense' };
+  }
+  return { category: 'other', financialType: 'other' };
 }
 
 // ── COLUMN DETECTION ──────────────────────────────────────────────────────────
-// Nigerian bank CSV exports use inconsistent header names. Map every known
-// variant — already lower-cased by Papa's transformHeader — onto the
-// standard field name we work with internally.
-const COLUMN_ALIASES = {
-  date:        ['date', 'trans date', 'transaction date', 'value date', 'txn date'],
-  description: ['description', 'narration', 'particulars', 'details', 'transaction details', 'remarks'],
-  debit:       ['debit', 'dr', 'withdrawals', 'withdrawal', 'amount (dr)', 'debit amount'],
-  credit:      ['credit', 'cr', 'deposits', 'deposit', 'amount (cr)', 'credit amount'],
-};
-
 function detectColumns(headers) {
-  const map = {};
-  for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
-    const found = aliases.find(alias => headers.includes(alias));
-    if (found) map[field] = found;
-  }
-  return map;
+  const h = headers.map(x => (x || '').toLowerCase().trim());
+  const find = (candidates) => {
+    const idx = h.findIndex(x => candidates.some(c => x.includes(c)));
+    return idx >= 0 ? headers[idx] : null;
+  };
+  return {
+    dateCol:   find(['date','time','txn date','value date','transaction date','trans date']),
+    descCol:   find(['description','narration','particulars','details','remarks','reference','transaction details','beneficiary']),
+    debitCol:  find(['debit','dr','withdrawal','amount dr','debit amount','money out','charge']),
+    creditCol: find(['credit','cr','deposit','amount cr','credit amount','money in','lodgement']),
+    amountCol: find(['amount','value']),
+  };
 }
 
-// Map a row of arbitrary lower-cased headers onto the standard
-// date/description/debit/credit shape via COLUMN_ALIASES, dropping rows
-// that carry no usable data in any of the four fields.
 function mapRowsToStandardFields(rows) {
   if (!rows.length) return [];
-  const colMap = detectColumns(Object.keys(rows[0]));
+  const cols = detectColumns(Object.keys(rows[0]));
   return rows
-    .map(row => ({
-      date:        row[colMap.date]        ?? row.date        ?? '',
-      description: row[colMap.description] ?? row.description ?? '',
-      debit:       row[colMap.debit]       ?? row.debit       ?? '',
-      credit:      row[colMap.credit]      ?? row.credit      ?? '',
-    }))
+    .map(row => {
+      let debit = '', credit = '';
+      if (cols.debitCol || cols.creditCol) {
+        debit  = cols.debitCol  ? String(row[cols.debitCol]  ?? '') : '';
+        credit = cols.creditCol ? String(row[cols.creditCol] ?? '') : '';
+      } else if (cols.amountCol) {
+        const raw = String(row[cols.amountCol] ?? '').replace(/[^\d.\-]/g, '');
+        const num = parseFloat(raw);
+        if (!isNaN(num)) {
+          if (num < 0) debit  = String(Math.abs(num));
+          else         credit = String(num);
+        }
+      }
+      return {
+        date:        cols.dateCol ? String(row[cols.dateCol] ?? '') : String(row.date ?? ''),
+        description: cols.descCol ? String(row[cols.descCol] ?? '') : String(row.description ?? ''),
+        debit,
+        credit,
+      };
+    })
     .filter(row => [row.date, row.description, row.debit, row.credit]
       .some(v => String(v ?? '').trim() !== ''));
 }
@@ -315,11 +350,15 @@ module.exports = async function handler(req, res) {
     totalCredits = Math.round(totalCredits * 100) / 100;
     const balanceValid = Math.abs(totalDebits - totalCredits) < 0.01;
 
-    // STEP 7: Categorise
-    rows = rows.map(row => ({
-      ...row,
-      category: categorise(row.raw.description),
-    }));
+    // STEP 7: Classify transactions
+    rows = rows.map(row => {
+      const { category, financialType } = classifyTransaction(
+        row.raw.description,
+        row.debit  ?? 0,
+        row.credit ?? 0,
+      );
+      return { ...row, category, financial_type: financialType };
+    });
 
     // STEP 8: Audit score
     const invalidDateCount   = rows.filter(r => r.flag_reason === 'invalid_date').length;
@@ -359,15 +398,16 @@ module.exports = async function handler(req, res) {
     // Batch insert transactions in groups of 100
     const txnRows = rows.map(r => ({
       audit_id,
-      user_id:     userId,
-      txn_date:    r.txn_date || null,
-      description: r.raw.description || '',
-      debit:       r.debit  ?? null,
-      credit:      r.credit ?? null,
-      category:    r.category,
-      is_flagged:  r.is_flagged,
-      flag_reason: r.flag_reason || null,
-      row_number:  r.row_number,
+      user_id:        userId,
+      txn_date:       r.txn_date || null,
+      description:    r.raw.description || '',
+      debit:          r.debit  ?? null,
+      credit:         r.credit ?? null,
+      category:       r.category,
+      financial_type: r.financial_type || 'other',
+      is_flagged:     r.is_flagged,
+      flag_reason:    r.flag_reason || null,
+      row_number:     r.row_number,
     }));
 
     const BATCH = 100;
@@ -378,7 +418,28 @@ module.exports = async function handler(req, res) {
       if (txnErr) throw new Error(`Transaction insert failed (batch ${Math.floor(i/BATCH)+1}): ${txnErr.message}`);
     }
 
-    // STEP 10: Return result
+    // STEP 10: Build financial summary
+    const categoryBreakdown = {};
+    let summaryRevenue = 0, summaryExpenses = 0, summaryAssets = 0, summaryLiabilities = 0;
+    rows.filter(r => !r.is_flagged).forEach(r => {
+      const cat = r.category || 'other';
+      const ft  = r.financial_type || 'other';
+      const cr  = r.credit ?? 0;
+      const db  = r.debit  ?? 0;
+      if (!categoryBreakdown[cat]) categoryBreakdown[cat] = 0;
+      if (ft === 'revenue')           { summaryRevenue     += cr; categoryBreakdown[cat] += cr; }
+      if (ft === 'expense')           { summaryExpenses    += db; categoryBreakdown[cat] += db; }
+      if (ft === 'asset')             { summaryAssets      += db; categoryBreakdown[cat] += db; }
+      if (ft === 'liability_receipt') { summaryLiabilities += cr; categoryBreakdown[cat] += cr; }
+      if (ft === 'liability_payment') { categoryBreakdown[cat] += db; }
+    });
+    summaryRevenue     = Math.round(summaryRevenue     * 100) / 100;
+    summaryExpenses    = Math.round(summaryExpenses    * 100) / 100;
+    summaryAssets      = Math.round(summaryAssets      * 100) / 100;
+    summaryLiabilities = Math.round(summaryLiabilities * 100) / 100;
+    const summaryEquity    = Math.round((summaryRevenue - summaryExpenses) * 100) / 100;
+
+    // STEP 11: Return result
     const flaggedRows = rows
       .filter(r => r.is_flagged)
       .map(r => ({
@@ -398,6 +459,15 @@ module.exports = async function handler(req, res) {
       total_debits:    totalDebits,
       total_credits:   totalCredits,
       flagged_rows:    flaggedRows,
+      financialSummary: {
+        totalRevenue:     summaryRevenue,
+        totalExpenses:    summaryExpenses,
+        netProfit:        summaryEquity,
+        totalAssets:      summaryAssets,
+        totalLiabilities: summaryLiabilities,
+        equity:           summaryEquity,
+        categoryBreakdown,
+      },
     });
 
   } catch (err) {
