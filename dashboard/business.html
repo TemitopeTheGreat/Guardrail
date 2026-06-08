@@ -244,7 +244,7 @@ let vatRecords   = [];
 function formatNGN(n) {
   const v = Number(n);
   if (!isFinite(v)) return 'NGN 0.00';
-  return v.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
+  return 'NGN ' + v.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function scoreHex(s) { return +s>=90?'#34D399':+s>=70?'#FBBF24':'#F87171'; }
 function scoreCls(s) { return +s>=90?'text-emerald-400':+s>=70?'text-amber-400':'text-red-400'; }
@@ -280,6 +280,22 @@ window.switchTab = function(name) {
 };
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
+// Fetch every transaction row for an audit — Supabase caps a single select at
+// 1000 rows, so page through with .range() until a short page tells us we're done.
+// (No row limit per the audit spec — large uploads must show their full ledger.)
+async function fetchAllTransactions(auditId) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  for (;;) {
+    const { data } = await supabaseClient.from('transactions').select('*')
+      .eq('audit_id', auditId).order('row_number').range(from, from + PAGE - 1);
+    all = all.concat(data || []);
+    if (!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 function computeTotals(txns) {
   const clean    = txns.filter(t=>!t.is_flagged);
   const revenue  = clean.reduce((s,t)=>s+Number(t.credit||0),0);
@@ -598,8 +614,7 @@ async function renderVAT() {
 }
 
 window.calcVAT = function() {
-  // Nigerian VAT rate — update if FIRS changes this
-  const VAT_RATE = 0.075;
+  const VAT_RATE = window.GuardrailTax.VAT_RATE;
   const sales     = parseFloat(document.getElementById('vat-sales').value)     || 0;
   const purchases = parseFloat(document.getElementById('vat-purchases').value) || 0;
   const outVat = sales     * VAT_RATE;
@@ -612,7 +627,7 @@ window.calcVAT = function() {
 };
 
 window.saveVAT = async function() {
-  const VAT_RATE = 0.075;
+  const VAT_RATE = window.GuardrailTax.VAT_RATE;
   const sales     = parseFloat(document.getElementById('vat-sales').value)     || 0;
   const purchases = parseFloat(document.getElementById('vat-purchases').value) || 0;
   const label     = document.getElementById('vat-period-label').value.trim() || new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'});
@@ -870,8 +885,7 @@ async function reloadData() {
   const { data:a } = await supabaseClient.from('audits').select('*').eq('user_id',userId).eq('status','complete').order('created_at',{ascending:false}).limit(1);
   latestAudit = a?.[0]||null;
   if (latestAudit) {
-    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
-    transactions = t||[];
+    transactions = await fetchAllTransactions(latestAudit.id);
   }
   renderOverview(); renderPL(); renderLedger(); renderTaxDashboard(); renderAuditTab();
 }
@@ -899,8 +913,7 @@ async function init() {
   stations    = stationsRes.data||[];
 
   if (latestAudit) {
-    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
-    transactions = t||[];
+    transactions = await fetchAllTransactions(latestAudit.id);
   }
 
   document.getElementById('skeleton').classList.add('hidden');

@@ -20,7 +20,10 @@ function scoreColour(score) {
 
 function fmtMoney(n) {
   if (n == null) return '';
-  return '₦' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // PDFKit's built-in Helvetica uses WinAnsi encoding, which has no glyph for
+  // ₦ (U+20A6) — it would render as a missing/garbled character. Use the same
+  // ASCII-safe "NGN " prefix as fmtNGN elsewhere in the app.
+  return 'NGN ' + Number(n).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(str) {
@@ -88,6 +91,12 @@ module.exports = async function handler(req, res) {
 
     const displayName = profile?.full_name || user.email || 'User';
 
+    // The `audits` row has no total_debits/total_credits columns — derive them
+    // from the clean (non-flagged) transactions, same population audit.js scored.
+    const cleanTxns = (txns || []).filter(t => !t.is_flagged);
+    const totalDebits  = cleanTxns.reduce((s, t) => s + Number(t.debit  || 0), 0);
+    const totalCredits = cleanTxns.reduce((s, t) => s + Number(t.credit || 0), 0);
+
     // ── BUILD PDF ─────────────────────────────────────────────────────────────
     const pdfBuffer = await new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -142,8 +151,8 @@ module.exports = async function handler(req, res) {
         ['Duplicates removed',   String(audit.duplicate_count)],
         ['Errors flagged',       String(audit.error_count)],
         ['Balance status',       audit.balance_valid ? 'Balanced ✓' : 'Not Balanced ✗'],
-        ['Total debits',         fmtMoney(audit.total_debits  ?? 0)],
-        ['Total credits',        fmtMoney(audit.total_credits ?? 0)],
+        ['Total debits',         fmtMoney(totalDebits)],
+        ['Total credits',        fmtMoney(totalCredits)],
         ['Account type',         (audit.account_type || '').charAt(0).toUpperCase() + (audit.account_type || '').slice(1)],
       ];
 

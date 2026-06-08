@@ -4,9 +4,11 @@
 (function () {
   'use strict';
 
-  const ACCEPTED_TYPES = ['text/csv', 'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-  const ACCEPTED_EXT   = /\.(csv|xlsx|xls)$/i;
+  // Browsers report MIME types inconsistently for bank-statement formats
+  // (OFX/QIF/TSV in particular often come back as "" or octet-stream), so
+  // validation is by file extension, not MIME type.
+  const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx', '.xls', '.pdf', '.ofx', '.qif', '.tsv', '.txt'];
+  const ACCEPTED_EXT   = /\.(csv|xlsx|xls|pdf|ofx|qif|tsv|txt)$/i;
   const MAX_BYTES      = 10 * 1024 * 1024; // 10 MB
 
   // ── PUBLIC INIT ─────────────────────────────────────────────────────────────
@@ -31,12 +33,12 @@
           <path d="M24 20v12M18 26l6-6 6 6" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M16 12V9a2 2 0 012-2h12a2 2 0 012 2v3" stroke="#94A3B8" stroke-width="2"/>
         </svg>
-        <p class="text-slate-300 font-semibold text-base mb-1">Drop your CSV here</p>
+        <p class="text-slate-300 font-semibold text-base mb-1">Drop your bank statement here</p>
         <p class="text-slate-500 text-sm">or <span class="text-emerald-400 underline cursor-pointer" id="gr-browse-link">browse files</span></p>
-        <p class="text-slate-600 text-xs mt-3">Accepts .csv, .xlsx, .xls — max 10 MB</p>
+        <p class="text-slate-600 text-xs mt-3">Accepts .csv, .xlsx, .xls, .pdf, .ofx, .qif, .tsv, .txt — max 10 MB</p>
       </div>
 
-      <input id="gr-file-input" type="file" accept=".csv,.xlsx,.xls" class="hidden">
+      <input id="gr-file-input" type="file" accept="${ACCEPTED_EXTENSIONS.join(',')}" class="hidden">
 
       <div id="gr-status"  class="mt-4 hidden"></div>
       <div id="gr-results" class="mt-6 hidden"></div>
@@ -95,8 +97,10 @@
 
   // ── FILE VALIDATION ─────────────────────────────────────────────────────────
   function validateFile(file) {
-    if (!ACCEPTED_EXT.test(file.name) && !ACCEPTED_TYPES.includes(file.type)) {
-      return 'Please upload a CSV or Excel file.';
+    // Validate by extension first — browsers report MIME types inconsistently
+    // for CSV/OFX/QIF/TSV (often "" or "application/octet-stream").
+    if (!ACCEPTED_EXT.test(file.name)) {
+      return 'Unsupported file type. Accepts .csv, .xlsx, .xls, .pdf, .ofx, .qif, .tsv, .txt.';
     }
     if (file.size > MAX_BYTES) {
       return 'File is too large. Maximum size is 10MB.';
@@ -117,11 +121,12 @@
     document.getElementById('gr-results').classList.add('hidden');
 
     try {
-      // Get session
+      // Get session — redirect to login if it's missing/expired rather than
+      // failing deep inside the upload with a confusing 401.
       const { data: { session }, error: sessErr } = await window.supabaseClient.auth.getSession();
       if (sessErr || !session) {
-        setStatus('You must be signed in to upload files.', 'error');
-        resetDropzone();
+        setStatus('Your session has expired. Redirecting to sign in…', 'error');
+        setTimeout(() => window.location.replace('/login.html'), 1200);
         return;
       }
       const userId      = session.user.id;
@@ -133,7 +138,7 @@
       setStatus('<span class="animate-pulse">⟳ Uploading file…</span>');
       const { error: uploadErr } = await window.supabaseClient.storage
         .from('raw-uploads')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+        .upload(filePath, file, { cacheControl: '3600', upsert: true });
       if (uploadErr) throw new Error('Upload failed: ' + uploadErr.message);
 
       // Stage 2: Call audit API
@@ -147,9 +152,17 @@
         body: JSON.stringify({ file_path: filePath, audit_id: auditId }),
       });
 
-      // Stage 3: Saving
+      // Stage 3: Saving — parse defensively. A misconfigured route or a
+      // server crash can return HTML/plaintext instead of JSON, and
+      // `res.json()` throws a cryptic "Unexpected token <" in that case.
       setStatus('<span class="animate-pulse">⟳ Saving results…</span>');
-      const auditData = await auditRes.json();
+      const rawBody = await auditRes.text();
+      let auditData;
+      try {
+        auditData = JSON.parse(rawBody);
+      } catch {
+        throw new Error('Server error. Please try again.');
+      }
 
       if (!auditRes.ok || !auditData.success) {
         throw new Error(auditData.error || 'Audit failed. Please try again.');

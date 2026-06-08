@@ -43,6 +43,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .fc-sub{font-size:1.45rem;color:rgba(255,255,255,.45);margin-bottom:2.4rem}
 .url-err-banner{background:rgba(223,62,62,.1);border:1px solid rgba(223,62,62,.22);border-radius:.8rem;padding:1rem 1.4rem;font-size:1.3rem;color:#ff8888;margin-bottom:2rem;display:none}
 .url-err-banner.show{display:block}
+.url-confirm-banner{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);border-radius:.8rem;padding:1rem 1.4rem;font-size:1.3rem;color:#34D399;margin-bottom:2rem;display:none}
+.url-confirm-banner.show{display:block}
 .form-group{margin-bottom:2rem}
 .fg-lbl{display:block;font-size:1.3rem;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:.8rem}
 .fg-in{width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.1);border-radius:1rem;padding:1.4rem 1.6rem;font-family:'Inter',sans-serif;font-size:1.5rem;color:#fff;outline:none;transition:all .2s}
@@ -123,9 +125,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
   <!-- RIGHT: Form panel -->
   <div class="r-panel">
-    <div class="form-card">
+    <form class="form-card" id="loginForm">
       <h1 class="fc-title">Welcome back.</h1>
       <p class="fc-sub">Sign in to your Guardrail workspace.</p>
+
+      <!-- URL confirm banner (message=confirmed param) -->
+      <div class="url-confirm-banner" id="urlConfirmBanner">
+        Email confirmed. You can now sign in.
+      </div>
 
       <!-- URL error banner (auth_failed param) -->
       <div class="url-err-banner" id="urlErrBanner">
@@ -158,7 +165,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="login-err" id="loginErr"></div>
 
       <!-- Submit -->
-      <button class="btn-login" id="loginBtn" type="button">Sign In →</button>
+      <button class="btn-login" id="loginBtn" type="submit">Sign In →</button>
 
       <!-- Divider -->
       <div class="divider"><div class="dv-line"></div><div class="dv-txt">or continue with</div><div class="dv-line"></div></div>
@@ -173,7 +180,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="signup-row">Don't have an account? <a href="signup.html">Get started free →</a></div>
 
       <div class="sec-note">🔒 256-bit encrypted · SOC 2 compliant · ISO 27001</div>
-    </div>
+    </form>
   </div>
 </div>
 
@@ -188,16 +195,30 @@ import { supabaseClient, getSession, getProfile, redirectToDashboard } from './j
   if (profile) redirectToDashboard(profile.account_type);
 })();
 
-// ── URL ERROR PARAM ───────────────────────────────────────────────────────────
-if (new URLSearchParams(window.location.search).get('error') === 'auth_failed') {
-  document.getElementById('urlErrBanner').classList.add('show');
+// ── URL PARAMS (confirmation success / auth error) ────────────────────────────
+{
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('message') === 'confirmed') {
+    document.getElementById('urlConfirmBanner').classList.add('show');
+  }
+  if (urlParams.get('error')) {
+    document.getElementById('urlErrBanner').classList.add('show');
+  }
 }
 
 // ── HELPER FUNCTIONS ──────────────────────────────────────────────────────────
+const ERROR_MESSAGES = {
+  'invalid login credentials': 'Email or password is incorrect.',
+  'email not confirmed': 'Please check your inbox and confirm your email first.',
+  'too many requests': 'Too many attempts. Please wait a moment and try again.',
+  'user not found': 'No account found with that email address.',
+};
+
 function translateError(msg) {
-  if (/invalid login credentials/i.test(msg)) return 'Email or password is incorrect.';
-  if (/email not confirmed/i.test(msg)) return 'Please check your inbox and confirm your email first.';
-  if (/too many requests/i.test(msg)) return 'Too many attempts. Please wait a moment and try again.';
+  const lower = (msg || '').toLowerCase();
+  for (const [key, friendly] of Object.entries(ERROR_MESSAGES)) {
+    if (lower.includes(key)) return friendly;
+  }
   return 'Something went wrong. Please try again.';
 }
 
@@ -242,9 +263,10 @@ document.getElementById('forgotBtn').addEventListener('click', async () => {
 });
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
-async function handleLogin() {
+async function handleLogin(e) {
+  if (e && e.preventDefault) e.preventDefault();
   clearErrors();
-  const email = document.getElementById('email').value.trim();
+  const email = document.getElementById('email').value.trim().toLowerCase();
   const password = document.getElementById('password').value;
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -261,21 +283,23 @@ async function handleLogin() {
   btn.disabled = true;
   btn.innerHTML = '<span class="spin">⟳</span> Signing in…';
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  try {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
-  if (error) {
+    if (error) {
+      showLoginErr(translateError(error.message));
+      return;
+    }
+
+    const profile = await getProfile(data.user.id);
+    redirectToDashboard(profile?.account_type);
+  } finally {
     btn.disabled = false;
-    btn.textContent = 'Sign In →';
-    showLoginErr(translateError(error.message));
-    return;
+    btn.innerHTML = 'Sign In →';
   }
-
-  const profile = await getProfile(data.user.id);
-  redirectToDashboard(profile?.account_type);
 }
 
-document.getElementById('loginBtn').addEventListener('click', handleLogin);
-document.addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
 // ── GOOGLE OAUTH ──────────────────────────────────────────────────────────────
 document.getElementById('googleBtn').addEventListener('click', async () => {

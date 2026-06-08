@@ -227,7 +227,7 @@ let goals        = [];
 function formatNGN(n) {
   const v = Number(n);
   if (!isFinite(v)) return 'NGN 0.00';
-  return v.toLocaleString('en-NG', { style: 'currency', currency: 'NGN' });
+  return 'NGN ' + v.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 function scoreHex(s) { return +s >= 90 ? '#34D399' : +s >= 70 ? '#FBBF24' : '#F87171'; }
 function scoreCls(s) { return +s >= 90 ? 'text-emerald-400' : +s >= 70 ? 'text-amber-400' : 'text-red-400'; }
@@ -258,6 +258,22 @@ window.switchTab = function(name) {
 };
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
+// Fetch every transaction row for an audit — Supabase caps a single select at
+// 1000 rows, so page through with .range() until a short page tells us we're done.
+// (No row limit per the audit spec — large uploads must show their full ledger.)
+async function fetchAllTransactions(auditId) {
+  const PAGE = 1000;
+  let all = [], from = 0;
+  for (;;) {
+    const { data } = await supabaseClient.from('transactions').select('*')
+      .eq('audit_id', auditId).order('row_number').range(from, from + PAGE - 1);
+    all = all.concat(data || []);
+    if (!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return all;
+}
+
 function computeTotals(txns) {
   const clean    = txns.filter(t => !t.is_flagged);
   const income   = clean.filter(t => Number(t.credit) > 0).reduce((s,t) => s + Number(t.credit), 0);
@@ -778,8 +794,7 @@ async function reloadData() {
   const { data:a } = await supabaseClient.from('audits').select('*').eq('user_id',userId).eq('status','complete').order('created_at',{ascending:false}).limit(1);
   latestAudit = a?.[0] || null;
   if (latestAudit) {
-    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
-    transactions = t || [];
+    transactions = await fetchAllTransactions(latestAudit.id);
   }
   renderOverview(); renderCashFlow(); renderBalanceSheet(); renderLedger(); renderTaxDashboard();
   renderAuditTab();
@@ -804,8 +819,7 @@ async function init() {
   goals       = goalsRes.data || [];
 
   if (latestAudit) {
-    const { data:t } = await supabaseClient.from('transactions').select('*').eq('audit_id',latestAudit.id).order('row_number').range(0, 4999);
-    transactions = t || [];
+    transactions = await fetchAllTransactions(latestAudit.id);
   }
 
   document.getElementById('skeleton').classList.add('hidden');

@@ -450,7 +450,10 @@ document.getElementById('formInd').addEventListener('submit', async e => {
 
   const { error } = await supabaseClient.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, account_type: 'individual', track_type: track } },
+    options: {
+      data: { full_name: fullName, account_type: 'individual', track_type: track },
+      emailRedirectTo: window.location.origin + '/auth-callback.html',
+    },
   });
 
   setBtnLoading(btn, false, 'Create my account');
@@ -484,7 +487,10 @@ document.getElementById('formBiz').addEventListener('submit', async e => {
 
   const { error } = await supabaseClient.auth.signUp({
     email, password,
-    options: { data: { full_name: fullName, account_type: 'business', business_name: bizName || null, rc_number: rc || null, industry_sector: sector } },
+    options: {
+      data: { full_name: fullName, account_type: 'business', business_name: bizName || null, rc_number: rc || null, industry_sector: sector },
+      emailRedirectTo: window.location.origin + '/auth-callback.html',
+    },
   });
 
   setBtnLoading(btn, false, 'Create business account');

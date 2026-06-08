@@ -103,6 +103,7 @@ const SUPABASE_KEY = 'sb_publishable_yHtOvUkDevZi_8e9XeCX0g_k7sjER12';
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let resolvedUser = null;
+let handled = false; // true once we've started routing a real session somewhere
 
 async function getProfile(userId) {
   const { data, error } = await supabaseClient.from('profiles').select('*').eq('id', userId).single();
@@ -110,20 +111,21 @@ async function getProfile(userId) {
 }
 
 function redirectToDashboard(accountType) {
-  const paths = { individual: 'dashboard/individual.html', business: 'dashboard/business.html' };
-  window.location.replace(paths[accountType] || 'login.html');
+  const paths = { individual: '/dashboard/individual.html', business: '/dashboard/business.html' };
+  window.location.replace(paths[accountType] || '/login.html');
 }
 
 async function handleSession(session) {
-  if (!session) return false;
+  if (!session || handled) return;
+  handled = true;
+  clearTimeout(safetyTimer);
   resolvedUser = session.user;
   const profile = await getProfile(session.user.id);
   if (profile) {
     redirectToDashboard(profile.account_type);
-    return true;
+  } else {
+    document.getElementById('typeModal').classList.remove('hidden');
   }
-  document.getElementById('typeModal').classList.remove('hidden');
-  return true;
 }
 
 async function chooseType(accountType) {
@@ -145,29 +147,49 @@ async function chooseType(accountType) {
   redirectToDashboard(accountType);
 }
 
-// Handle error in URL (e.g. otp_expired)
+// ── Capture an explicit error Supabase put in the URL hash (e.g. expired or
+//    already-used links surface as #error=...&error_code=otp_expired) before
+//    the SDK consumes/clears the hash while establishing a session. ───────────
 const hashParams = new URLSearchParams(window.location.hash.slice(1));
-if (hashParams.get('error')) {
-  window.location.replace('login.html?error=' + hashParams.get('error_code'));
+const authError = hashParams.get('error_code') || hashParams.get('error');
+if (authError) {
+  window.location.replace('/login.html?error=' + encodeURIComponent(authError));
 }
 
-let redirectTimer = setTimeout(() => {
-  window.location.replace('login.html?error=auth_failed');
-}, 5000);
+// Absolute safety net — never strand the user on the spinner indefinitely.
+const safetyTimer = setTimeout(() => {
+  if (!handled) window.location.replace('/login.html?error=auth_failed');
+}, 8000);
 
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-    clearTimeout(redirectTimer);
-    await handleSession(session);
+// The SDK parses the access token out of the URL asynchronously — this is
+// the primary path for both "confirm email" links (which sign the user in)
+// and Google OAuth / password-recovery redirects.
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+    handleSession(session);
   }
 });
 
 (async () => {
-  const { data } = await supabaseClient.auth.getSession();
-  if (data.session) {
-    clearTimeout(redirectTimer);
-    await handleSession(data.session);
-  }
+  if (handled || authError) return;
+
+  let { data } = await supabaseClient.auth.getSession();
+  if (data.session) { await handleSession(data.session); return; }
+
+  // Supabase sometimes needs a moment to process the token from the URL
+  // hash — give it one retry before concluding there's no session.
+  await new Promise(r => setTimeout(r, 2000));
+  if (handled) return;
+
+  ({ data } = await supabaseClient.auth.getSession());
+  if (data.session) { await handleSession(data.session); return; }
+  if (handled) return;
+
+  // No session materialised and no explicit error in the URL — this is the
+  // expected outcome for an email/password "confirm signup" link: Supabase
+  // confirms the address server-side but doesn't always start a session.
+  // Send the user to sign in rather than showing a scary "failed" message.
+  window.location.replace('/login.html?message=confirmed');
 })();
 </script>
 </body>
