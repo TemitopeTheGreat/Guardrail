@@ -4,11 +4,10 @@
 (function () {
   'use strict';
 
-  // Browsers report MIME types inconsistently for bank-statement formats
-  // (OFX/QIF/TSV in particular often come back as "" or octet-stream), so
-  // validation is by file extension, not MIME type.
-  const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx', '.xls', '.pdf', '.ofx', '.qif', '.tsv', '.txt'];
-  const ACCEPTED_EXT   = /\.(csv|xlsx|xls|pdf|ofx|qif|tsv|txt)$/i;
+  // Browsers report MIME types inconsistently for spreadsheet/CSV exports,
+  // so validation is by file extension, not MIME type.
+  const ACCEPTED_EXTENSIONS = ['.csv', '.xlsx', '.xls'];
+  const ACCEPTED_EXT   = /\.(csv|xlsx|xls)$/i;
   const MAX_BYTES      = 10 * 1024 * 1024; // 10 MB
 
   // ── PUBLIC INIT ─────────────────────────────────────────────────────────────
@@ -33,9 +32,9 @@
           <path d="M24 20v12M18 26l6-6 6 6" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M16 12V9a2 2 0 012-2h12a2 2 0 012 2v3" stroke="#94A3B8" stroke-width="2"/>
         </svg>
-        <p class="text-slate-300 font-semibold text-base mb-1">Drop your bank statement here</p>
+        <p class="text-slate-300 font-semibold text-base mb-1">Drop your CSV or Excel file here</p>
         <p class="text-slate-500 text-sm">or <span class="text-emerald-400 underline cursor-pointer" id="gr-browse-link">browse files</span></p>
-        <p class="text-slate-600 text-xs mt-3">Accepts .csv, .xlsx, .xls, .pdf, .ofx, .qif, .tsv, .txt — max 10 MB</p>
+        <p class="text-slate-600 text-xs mt-3">Accepts .csv, .xlsx, .xls — max 10 MB</p>
       </div>
 
       <input id="gr-file-input" type="file" accept="${ACCEPTED_EXTENSIONS.join(',')}" class="hidden">
@@ -97,10 +96,9 @@
 
   // ── FILE VALIDATION ─────────────────────────────────────────────────────────
   function validateFile(file) {
-    // Validate by extension first — browsers report MIME types inconsistently
-    // for CSV/OFX/QIF/TSV (often "" or "application/octet-stream").
+    // Validate by extension — browsers report MIME types inconsistently for CSV/Excel.
     if (!ACCEPTED_EXT.test(file.name)) {
-      return 'Unsupported file type. Accepts .csv, .xlsx, .xls, .pdf, .ofx, .qif, .tsv, .txt.';
+      return 'Unsupported file type. Accepts .csv, .xlsx, .xls.';
     }
     if (file.size > MAX_BYTES) {
       return 'File is too large. Maximum size is 10MB.';
@@ -132,14 +130,26 @@
       const userId      = session.user.id;
       const accessToken = session.access_token;
       const auditId     = crypto.randomUUID();
-      const filePath    = `${userId}/${auditId}/${file.name}`;
+      // Storage paths must be plain ASCII with forward slashes — strip
+      // anything that isn't alphanumeric/dot/dash so spaces, parentheses,
+      // accents, etc. in the original filename can't produce a bad path.
+      const safeName    = file.name.replace(/[^a-zA-Z0-9.-]/g, '');
+      const filePath    = `${userId}/${auditId}/${safeName}`;
 
       // Stage 1: Upload to storage
       setStatus('<span class="animate-pulse">⟳ Uploading file…</span>');
-      const { error: uploadErr } = await window.supabaseClient.storage
+      console.log('Uploading to bucket "raw-uploads":', { filePath, fileSize: file.size });
+      const { data, error } = await window.supabaseClient.storage
         .from('raw-uploads')
-        .upload(filePath, file, { cacheControl: '3600', upsert: true });
-      if (uploadErr) throw new Error('Upload failed: ' + uploadErr.message);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: 'application/octet-stream',
+        });
+      if (error) {
+        console.error('Storage error:', error);
+        throw new Error('File upload failed: ' + error.message);
+      }
 
       // Stage 2: Call audit API
       setStatus('<span class="animate-pulse">⟳ Running audit…</span>');

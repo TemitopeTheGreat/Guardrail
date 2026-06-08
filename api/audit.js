@@ -5,7 +5,6 @@ if (process.env.NODE_ENV !== 'production') {
 const { createClient } = require('@supabase/supabase-js');
 const Papa = require('papaparse');
 const XLSX = require('xlsx');
-const pdfParse = require('pdf-parse');
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -128,23 +127,21 @@ function mapRowsToStandardFields(rows) {
       .some(v => String(v ?? '').trim() !== ''));
 }
 
-// ── MULTI-FORMAT FILE PARSING ─────────────────────────────────────────────────
-// Sniff the delimiter from the header line — Nigerian bank exports show up as
-// comma, semicolon, or tab separated depending on the export tool used.
-function detectDelimiter(text, ext) {
-  if (ext === 'tsv') return '\t';
+// ── FILE PARSING (CSV + Excel only) ───────────────────────────────────────────
+// Sniff the delimiter from the header line — Nigerian bank CSV exports show up
+// as comma- or semicolon-separated depending on the export tool used.
+function detectDelimiter(text) {
   const firstLine = (text.split(/\r?\n/).find(l => l.trim()) || '');
   const counts = {
-    ',':  (firstLine.match(/,/g)  || []).length,
-    '\t': (firstLine.match(/\t/g) || []).length,
-    ';':  (firstLine.match(/;/g)  || []).length,
+    ',': (firstLine.match(/,/g) || []).length,
+    ';': (firstLine.match(/;/g) || []).length,
   };
   const [best, bestCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
   return bestCount > 0 ? best : ',';
 }
 
-function parseDelimitedText(text, ext) {
-  const delimiter = detectDelimiter(text, ext);
+function parseDelimitedText(text) {
+  const delimiter = detectDelimiter(text);
   const parsed = Papa.parse(text, {
     header: true,
     skipEmptyLines: true,
@@ -170,144 +167,22 @@ function parseSpreadsheet(buffer) {
   return mapRowsToStandardFields(normalised);
 }
 
-// Asks Claude to turn unstructured PDF statement text into a structured
-// transaction list — PDFs have no consistent columnar layout to parse with regex.
-async function extractTransactionsFromText(text) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('PDF processing is not configured on the server (missing ANTHROPIC_API_KEY).');
-
-  const excerpt = text.slice(0, 60000); // stay within the model's practical input budget
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 8192,
-      messages: [{
-        role: 'user',
-        content:
-          'Extract every bank transaction from the statement text below as a JSON array. ' +
-          'Each element must be an object with exactly these keys: "date" (YYYY-MM-DD string), ' +
-          '"description" (string), "debit" (number, or null if not a debit), ' +
-          '"credit" (number, or null if not a credit). ' +
-          'Respond with ONLY the JSON array — no markdown fencing, no commentary.\n\n' +
-          '--- STATEMENT TEXT ---\n' + excerpt,
-      }],
-    }),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`PDF extraction via Claude failed (${response.status}): ${detail.slice(0, 300)}`);
-  }
-
-  const payload = await response.json();
-  const raw = (payload.content || []).map(block => block.text || '').join('').trim();
-  const jsonMatch = raw.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Could not locate a transaction list in the PDF.');
-
-  let extracted;
-  try {
-    extracted = JSON.parse(jsonMatch[0]);
-  } catch {
-    throw new Error('Could not parse the transaction list extracted from the PDF.');
-  }
-
-  return extracted.map(t => ({
-    date:        t.date || '',
-    description: t.description || '',
-    debit:       t.debit  ?? '',
-    credit:      t.credit ?? '',
-  }));
-}
-
-async function parsePdfStatement(buffer) {
-  const { text } = await pdfParse(buffer);
-  return extractTransactionsFromText(text);
-}
-
-// OFX (`<STMTTRN>...</STMTTRN>` SGML-ish blocks) and QIF (line-coded entries,
-// e.g. "D01/15/2024", "T-2500.00", "PMemo") both lack a tabular layout, so we
-// pull fields out with targeted regexes rather than a real parser.
-function parseQifDate(s) {
-  const m = (s || '').match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-']?(\d{2,4})/);
-  if (!m) return '';
-  let [, a, b, year] = m;
-  if (year.length === 2) year = (parseInt(year, 10) >= 50 ? '19' : '20') + year;
-  return `${year}-${a.padStart(2, '0')}-${b.padStart(2, '0')}`;
-}
-
-function parseQIF(text) {
-  return text.split(/^\^\s*$/m)
-    .map(entry => {
-      let date = '', amount = null, memo = '';
-      for (const line of entry.split(/\r?\n/)) {
-        const code = line[0];
-        const val = line.slice(1).trim();
-        if (code === 'D') date = parseQifDate(val);
-        else if (code === 'T' || code === 'U') amount = parseFloat(val.replace(/,/g, ''));
-        else if ((code === 'P' || code === 'M') && !memo) memo = val;
-      }
-      if (!date && amount === null) return null;
-      return {
-        date,
-        description: memo,
-        debit:  (amount != null && amount < 0) ? Math.abs(amount) : '',
-        credit: (amount != null && amount > 0) ? amount : '',
-      };
-    })
-    .filter(Boolean);
-}
-
-function parseOFX(text, ext) {
-  if (ext === 'qif') return parseQIF(text);
-
-  const tag = (block, name) => {
-    const m = block.match(new RegExp(`<${name}>\\s*([^<\\r\\n]*)`, 'i'));
-    return m ? m[1].trim() : '';
-  };
-
-  const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
-  return blocks.map(block => {
-    const dtposted = tag(block, 'DTPOSTED');     // e.g. 20240115120000[-5:EST]
-    const amount   = parseFloat(tag(block, 'TRNAMT'));
-    const memo     = tag(block, 'MEMO') || tag(block, 'NAME');
-    const dateMatch = dtposted.match(/^(\d{4})(\d{2})(\d{2})/);
-
-    return {
-      date:        dateMatch ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}` : '',
-      description: memo,
-      debit:       (!isNaN(amount) && amount < 0) ? Math.abs(amount) : '',
-      credit:      (!isNaN(amount) && amount > 0) ? amount : '',
-    };
-  });
-}
-
 // Single entry point — branches on file extension and always resolves to the
 // standard { date, description, debit, credit } row shape the audit pipeline expects.
+// PDF/OFX/QIF support was removed for now — CSV and Excel are the two formats
+// that upload and parse reliably; other formats can be reintroduced later
+// once the core upload path is stable.
 async function parseFileContent(buffer, filename) {
   const ext = (filename.split('.').pop() || '').toLowerCase();
 
   switch (ext) {
     case 'csv':
-    case 'tsv':
-    case 'txt':
-      return parseDelimitedText(buffer.toString('utf-8'), ext);
+      return parseDelimitedText(buffer.toString('utf-8'));
     case 'xlsx':
     case 'xls':
       return parseSpreadsheet(buffer);
-    case 'pdf':
-      return parsePdfStatement(buffer);
-    case 'ofx':
-    case 'qif':
-      return parseOFX(buffer.toString('utf-8'), ext);
     default:
-      throw new Error(`Unsupported file type: .${ext}`);
+      throw new Error(`Unsupported file type: .${ext}. Please upload a CSV or Excel file.`);
   }
 }
 
