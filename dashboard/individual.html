@@ -607,14 +607,23 @@ function renderLedger() {
 
 // ── RENDER: TAX DASHBOARD ─────────────────────────────────────────────────────
 function renderTaxDashboard() {
-  const el = document.getElementById('tab-tax');
+  // Unlike the other tabs, this one patches several fixed-id sub-panels
+  // (taxDisclaimer, vatComputation, etc.) in place rather than rebuilding
+  // the whole tab — so the "no data" branch must NOT replace tab-tax's
+  // innerHTML. Doing so would permanently destroy those sub-panels and
+  // every later render (once data exists) would crash on a null lookup.
+  const disclaimerEl = document.getElementById('taxDisclaimer');
+  if (disclaimerEl) disclaimerEl.textContent = window.GuardrailTax?.DISCLAIMER || '';
+
   if (!latestAudit || !transactions.length) {
-    el.innerHTML = emptyState('No tax data yet', 'Upload transactions to see tax estimates');
+    const empty = emptyState('No tax data yet', 'Upload transactions to see tax estimates');
+    ['plStatement', 'vatComputation', 'citComputation', 'whtComputation', 'pitComputation', 'taxCalendar']
+      .forEach(id => {
+        const panel = document.getElementById(id);
+        if (panel) panel.innerHTML = empty;
+      });
     return;
   }
-
-  // Set disclaimer
-  document.getElementById('taxDisclaimer').textContent = window.GuardrailTax?.DISCLAIMER || '';
 
   // P&L
   if (window.GuardrailStatements?.computePL) {
@@ -635,7 +644,8 @@ function renderTaxDashboard() {
         <tr class="text-xs text-slate-500 mt-4"><td colspan="2" class="pt-4">Filing deadline: ${vat.filingDeadline} (21st of next month)</td></tr>
       </table>
     `;
-    document.getElementById('vatComputation').innerHTML = html;
+    const vatEl = document.getElementById('vatComputation');
+    if (vatEl) vatEl.innerHTML = html;
   }
 
   // CIT
@@ -654,7 +664,8 @@ function renderTaxDashboard() {
         <tr class="text-xs text-slate-500 mt-4"><td colspan="2" class="pt-4">Finance Act 2023 progressive rates</td></tr>
       </table>
     `;
-    document.getElementById('citComputation').innerHTML = html;
+    const citEl = document.getElementById('citComputation');
+    if (citEl) citEl.innerHTML = html;
   }
 
   // WHT
@@ -678,7 +689,8 @@ function renderTaxDashboard() {
       </div>
       <div class="text-xs text-slate-500 mt-2">Remit by: ${wht.remittanceDeadline}</div>
     `;
-    document.getElementById('whtComputation').innerHTML = html;
+    const whtEl = document.getElementById('whtComputation');
+    if (whtEl) whtEl.innerHTML = html;
   }
 
   // PIT
@@ -697,7 +709,8 @@ function renderTaxDashboard() {
         <tr class="text-xs text-slate-500"><td colspan="2" class="pt-2">Effective rate: ${window.GuardrailTax.pct(pit.effectiveRate)}</td></tr>
       </table>
     `;
-    document.getElementById('pitComputation').innerHTML = html;
+    const pitEl = document.getElementById('pitComputation');
+    if (pitEl) pitEl.innerHTML = html;
   }
 
   // Tax Calendar
@@ -716,7 +729,8 @@ function renderTaxDashboard() {
         <tbody>${rows}</tbody>
       </table>
     `;
-    document.getElementById('taxCalendar').innerHTML = html;
+    const calEl = document.getElementById('taxCalendar');
+    if (calEl) calEl.innerHTML = html;
   }
 }
 
