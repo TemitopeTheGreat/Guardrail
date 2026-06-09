@@ -59,8 +59,7 @@ function parseDate(str) {
 }
 
 // ── AMOUNT CLEANING ───────────────────────────────────────────────────────────
-// Strips NGN, ₦, N prefix, $, commas, and spaces before parsing.
-// Handles accounting-negative parentheses: (50,000) → -50000.
+// cleanAmount: used internally where sign must be preserved (makeRowSingle, PDF tier).
 function cleanAmount(val) {
   if (val === null || val === undefined) return null;
   let s = String(val).trim();
@@ -71,6 +70,18 @@ function cleanAmount(val) {
   if (!cleaned || cleaned === '.' || cleaned === '-') return null;
   const num = parseFloat(cleaned);
   return isNaN(num) ? NaN : Math.round(num * 100) / 100;
+}
+
+// parseAmount: applied to every debit/credit cell read from a file.
+// Always returns a number (0 for empty/unparseable). Strips ₦, NGN, commas,
+// spaces, and any non-numeric character so trailing commas never corrupt the value.
+function parseAmount(val) {
+  if (!val && val !== 0) return 0;
+  const cleaned = String(val)
+    .replace(/[₦NGN,\s]/gi, '')
+    .replace(/[^0-9.]/g, '')
+    .trim();
+  return parseFloat(cleaned) || 0;
 }
 
 // ── CLASSIFICATION ENGINE ─────────────────────────────────────────────────────
@@ -489,6 +500,7 @@ module.exports = async function handler(req, res) {
 
     // STEP 2: Parse file — Tier 1 bank templates → Tier 2/3 auto-detect → Tier 4 PDF → 400
     const rawRows = await parseFile(buffer, fileName);
+    console.log(`[audit] Parsed ${rawRows.length} rows from ${fileName}`);
 
     // Normalise rows into working objects
     let rows = rawRows.map((raw, i) => ({
@@ -534,21 +546,19 @@ module.exports = async function handler(req, res) {
     });
 
     // STEP 5: Validate amounts (skip duplicates)
+    // parseAmount always returns a number; 0 means empty/missing.
     rows = rows.map(row => {
       if (row.is_duplicate) return row;
-      const debit = cleanAmount(row.raw.debit);
-      const credit = cleanAmount(row.raw.credit);
+      const debit  = parseAmount(row.raw.debit);
+      const credit = parseAmount(row.raw.credit);
 
-      if (debit === null && credit === null) {
+      if (debit === 0 && credit === 0) {
         return { ...row, is_flagged: true, flag_reason: row.flag_reason || 'missing_amount' };
-      }
-      if ((debit !== null && isNaN(debit)) || (credit !== null && isNaN(credit))) {
-        return { ...row, is_flagged: true, flag_reason: row.flag_reason || 'invalid_amount', debit: null, credit: null };
       }
       return {
         ...row,
-        debit: isNaN(debit) ? null : debit,
-        credit: isNaN(credit) ? null : credit,
+        debit:  debit  || null,
+        credit: credit || null,
       };
     });
 
@@ -624,11 +634,25 @@ module.exports = async function handler(req, res) {
     }));
 
     const BATCH = 100;
+    let insertErrors = 0;
     for (let i = 0; i < txnRows.length; i += BATCH) {
-      const { error: txnErr } = await supabaseAdmin
-        .from('transactions')
-        .insert(txnRows.slice(i, i + BATCH));
-      if (txnErr) throw new Error(`Transaction insert failed (batch ${Math.floor(i/BATCH)+1}): ${txnErr.message}`);
+      const batch = txnRows.slice(i, i + BATCH);
+      console.log(`[audit] Inserting batch of ${batch.length} rows (offset ${i})`);
+      const { error: batchErr } = await supabaseAdmin.from('transactions').insert(batch);
+      if (batchErr) {
+        // Batch rejected — retry one row at a time so good rows still get saved
+        console.error(`[audit] Batch ${Math.floor(i / BATCH) + 1} failed (${batchErr.message}), retrying row-by-row`);
+        for (const txnRow of batch) {
+          const { error: rowErr } = await supabaseAdmin.from('transactions').insert(txnRow);
+          if (rowErr) {
+            console.error(`[audit] Skipping row ${txnRow.row_number}: ${rowErr.message}`);
+            insertErrors++;
+          }
+        }
+      }
+    }
+    if (insertErrors > 0) {
+      console.warn(`[audit] ${insertErrors} of ${txnRows.length} rows could not be saved`);
     }
 
     // STEP 10: Build financial summary
