@@ -3,8 +3,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const { createClient } = require('@supabase/supabase-js');
-const Papa = require('papaparse');
 const XLSX = require('xlsx');
+// pdf-parse is required lazily inside parseFile to avoid crashing the module on cold start
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
@@ -59,17 +59,18 @@ function parseDate(str) {
 }
 
 // ── AMOUNT CLEANING ───────────────────────────────────────────────────────────
+// Strips NGN, ₦, N prefix, $, commas, and spaces before parsing.
+// Handles accounting-negative parentheses: (50,000) → -50000.
 function cleanAmount(val) {
   if (val === null || val === undefined) return null;
-  const str = String(val).trim();
-  if (str === '') return null;
-  // Keep only digits, decimal point, and leading minus — strip currency symbols,
-  // thousands commas, spaces, and any letter prefix (₦, N, $, £, etc.)
-  const cleaned = str.replace(/[^\d.\-]/g, '');
-  if (cleaned === '' || cleaned === '.' || cleaned === '-') return null;
+  let s = String(val).trim();
+  if (!s) return null;
+  if (s.startsWith('(') && s.endsWith(')')) s = '-' + s.slice(1, -1);
+  s = s.replace(/^[A-Za-z₦$£€]+\s*/, '').replace(/,/g, '').replace(/\s/g, '');
+  const cleaned = s.replace(/[^\d.\-]/g, '');
+  if (!cleaned || cleaned === '.' || cleaned === '-') return null;
   const num = parseFloat(cleaned);
-  if (isNaN(num)) return NaN;
-  return Math.round(num * 100) / 100;
+  return isNaN(num) ? NaN : Math.round(num * 100) / 100;
 }
 
 // ── CLASSIFICATION ENGINE ─────────────────────────────────────────────────────
@@ -118,107 +119,309 @@ function classifyTransaction(description, debit, credit) {
   return { category: 'other', financialType: 'other' };
 }
 
-// ── COLUMN DETECTION ──────────────────────────────────────────────────────────
-function detectColumns(headers) {
-  const h = headers.map(x => (x || '').toLowerCase().trim());
-  const find = (candidates) => {
-    const idx = h.findIndex(x => candidates.some(c => x.includes(c)));
-    return idx >= 0 ? headers[idx] : null;
-  };
-  return {
-    dateCol:   find(['date','time','txn date','value date','transaction date','trans date']),
-    descCol:   find(['description','narration','particulars','details','remarks','reference','transaction details','beneficiary']),
-    debitCol:  find(['debit','dr','withdrawal','amount dr','debit amount','money out','charge']),
-    creditCol: find(['credit','cr','deposit','amount cr','credit amount','money in','lodgement']),
-    amountCol: find(['amount','value']),
-  };
-}
+// ── TIERED FILE PARSING ENGINE ────────────────────────────────────────────────
 
-function mapRowsToStandardFields(rows) {
-  if (!rows.length) return [];
-  const cols = detectColumns(Object.keys(rows[0]));
-  return rows
-    .map(row => {
-      let debit = '', credit = '';
-      if (cols.debitCol || cols.creditCol) {
-        debit  = cols.debitCol  ? String(row[cols.debitCol]  ?? '') : '';
-        credit = cols.creditCol ? String(row[cols.creditCol] ?? '') : '';
-      } else if (cols.amountCol) {
-        const raw = String(row[cols.amountCol] ?? '').replace(/[^\d.\-]/g, '');
-        const num = parseFloat(raw);
-        if (!isNaN(num)) {
-          if (num < 0) debit  = String(Math.abs(num));
-          else         credit = String(num);
-        }
+// Reused regexes for PDF tier
+const PDF_DATE_RE = /\b(\d{1,2}[\/\-]\d{1,2}[\/\-](?:\d{4}|\d{2})|\d{4}[\/\-]\d{2}[\/\-]\d{2})\b/;
+const PDF_AMTS_RE = /([\d,]+(?:\.\d{1,2})?)/g;
+
+// Parse delimited text (CSV/TSV/TXT) into { headers, rows }.
+// Headers keep their original casing; row keys match headers exactly.
+function csvToRows(text) {
+  const lines = text.split(/\r?\n/);
+  const hi = lines.findIndex(l => l.trim());
+  if (hi === -1) return { headers: [], rows: [] };
+
+  const sample = lines[hi];
+  const delim = (sample.match(/;/g) || []).length > (sample.match(/,/g) || []).length ? ';' : ',';
+
+  function split(line) {
+    const out = [];
+    let cur = '', q = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (q && line[i + 1] === '"') { cur += '"'; i++; }
+        else q = !q;
+      } else if (c === delim && !q) {
+        out.push(cur.trim()); cur = '';
+      } else {
+        cur += c;
       }
-      return {
-        date:        cols.dateCol ? String(row[cols.dateCol] ?? '') : String(row.date ?? ''),
-        description: cols.descCol ? String(row[cols.descCol] ?? '') : String(row.description ?? ''),
-        debit,
-        credit,
-      };
-    })
-    .filter(row => [row.date, row.description, row.debit, row.credit]
-      .some(v => String(v ?? '').trim() !== ''));
-}
-
-// ── FILE PARSING (CSV + Excel only) ───────────────────────────────────────────
-// Sniff the delimiter from the header line — Nigerian bank CSV exports show up
-// as comma- or semicolon-separated depending on the export tool used.
-function detectDelimiter(text) {
-  const firstLine = (text.split(/\r?\n/).find(l => l.trim()) || '');
-  const counts = {
-    ',': (firstLine.match(/,/g) || []).length,
-    ';': (firstLine.match(/;/g) || []).length,
-  };
-  const [best, bestCount] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
-  return bestCount > 0 ? best : ',';
-}
-
-function parseDelimitedText(text) {
-  const delimiter = detectDelimiter(text);
-  const parsed = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true,
-    delimiter,
-    transformHeader: h => h.trim().toLowerCase(),
-    transform: v => (typeof v === 'string' ? v.trim() : v),
-  });
-  return mapRowsToStandardFields(parsed.data || []);
-}
-
-function parseSpreadsheet(buffer) {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const sheetRows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-
-  const normalised = sheetRows.map(row => {
-    const out = {};
-    for (const [key, val] of Object.entries(row)) {
-      out[String(key).trim().toLowerCase()] = typeof val === 'string' ? val.trim() : val;
     }
+    out.push(cur.trim());
     return out;
-  });
-  return mapRowsToStandardFields(normalised);
+  }
+
+  const headers = split(lines[hi]);
+  const rows = [];
+  for (let i = hi + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cells = split(lines[i]);
+    const row = {};
+    headers.forEach((h, j) => { row[h] = cells[j] ?? ''; });
+    rows.push(row);
+  }
+  return { headers, rows };
 }
 
-// Single entry point — branches on file extension and always resolves to the
-// standard { date, description, debit, credit } row shape the audit pipeline expects.
-// PDF/OFX/QIF support was removed for now — CSV and Excel are the two formats
-// that upload and parse reliably; other formats can be reintroduced later
-// once the core upload path is stable.
-async function parseFileContent(buffer, filename) {
+// Parse XLSX/XLS buffer into { headers, rows }.
+function xlsxToRows(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, header: 1 });
+
+  const hi = raw.findIndex(r => r.some(c => String(c).trim()));
+  if (hi === -1) return { headers: [], rows: [] };
+
+  const headers = raw[hi].map(c => String(c).trim());
+  const rows = [];
+  for (let i = hi + 1; i < raw.length; i++) {
+    const cells = raw[i];
+    if (!cells.some(c => String(c).trim())) continue;
+    const row = {};
+    headers.forEach((h, j) => { row[h] = String(cells[j] ?? '').trim(); });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+// Row builders — all accept lowercase-keyed rows (Tier 1) or original-cased rows (Tier 2/3).
+function makeRow(row, dk, desck, dbk, crk) {
+  return {
+    date:        String(row[dk]    ?? '').trim(),
+    description: String(row[desck] ?? '').trim(),
+    debit:       String(row[dbk]   ?? '').trim(),
+    credit:      String(row[crk]   ?? '').trim(),
+  };
+}
+
+// For UBA/Wema: amount + Dr/Cr type column.
+function makeRowTyped(row, dk, desck, amtk, typek) {
+  const raw  = String(row[amtk]  ?? '').trim();
+  const type = String(row[typek] ?? '').trim().toUpperCase();
+  const isDr = type === 'DR' || type === 'D' || type === 'DEBIT';
+  return {
+    date:        String(row[dk]    ?? '').trim(),
+    description: String(row[desck] ?? '').trim(),
+    debit:       isDr ? raw : '',
+    credit:      isDr ? '' : raw,
+  };
+}
+
+// For single signed amount column: negative = debit, positive = credit.
+function makeRowSingle(row, dk, desck, amtk) {
+  const raw = String(row[amtk] ?? '').trim();
+  const num = cleanAmount(raw);
+  return {
+    date:        String(row[dk]    ?? '').trim(),
+    description: String(row[desck] ?? '').trim(),
+    debit:       (num !== null && !isNaN(num) && num < 0) ? String(Math.abs(num)) : '',
+    credit:      (num !== null && !isNaN(num) && num > 0) ? String(num)           : '',
+  };
+}
+
+function nonEmpty(rows) {
+  return rows.filter(r => r.date || r.description || r.debit || r.credit);
+}
+
+// ── TIER 1: NIGERIAN BANK TEMPLATES ──────────────────────────────────────────
+// `must` and all map keys are lowercase — rows are normalised before matching.
+const BANK_TEMPLATES = [
+  {
+    bank: 'GTBank',
+    must: ['trans. date', 'debit', 'credit', 'remarks'],
+    map:  r => makeRow(r, 'trans. date', 'remarks', 'debit', 'credit'),
+  },
+  {
+    bank: 'Access Bank',
+    must: ['date', 'narration', 'debit', 'credit'],
+    map:  r => makeRow(r, 'date', 'narration', 'debit', 'credit'),
+  },
+  {
+    bank: 'Zenith Bank',
+    must: ['date', 'remarks', 'debit', 'credit'],
+    map:  r => makeRow(r, 'date', 'remarks', 'debit', 'credit'),
+  },
+  {
+    bank: 'UBA',
+    must: ['date', 'beneficiary', 'amount', 'dr/cr'],
+    map:  r => makeRowTyped(r, 'date', 'beneficiary', 'amount', 'dr/cr'),
+  },
+  {
+    bank: 'First Bank',
+    must: ['date', 'description', 'withdrawal', 'deposit'],
+    map:  r => makeRow(r, 'date', 'description', 'withdrawal', 'deposit'),
+  },
+  {
+    bank: 'Stanbic IBTC',
+    must: ['posting date', 'description', 'debit', 'credit'],
+    map:  r => makeRow(r, 'posting date', 'description', 'debit', 'credit'),
+  },
+  {
+    bank: 'Fidelity Bank',
+    must: ['tran date', 'tran details', 'debit amt', 'credit amt'],
+    map:  r => makeRow(r, 'tran date', 'tran details', 'debit amt', 'credit amt'),
+  },
+  {
+    bank: 'Wema/ALAT',
+    must: ['date', 'narration', 'amount', 'type'],
+    map:  r => makeRowTyped(r, 'date', 'narration', 'amount', 'type'),
+  },
+];
+
+function tryBankTemplate(headers, rows) {
+  const lo = headers.map(h => h.toLowerCase().trim());
+
+  for (const tmpl of BANK_TEMPLATES) {
+    if (!tmpl.must.every(m => lo.includes(m))) continue;
+
+    // Normalise row keys to lowercase so map functions work regardless of file casing
+    const normRows = rows.map(row => {
+      const n = {};
+      Object.entries(row).forEach(([k, v]) => { n[k.toLowerCase().trim()] = v; });
+      return n;
+    });
+
+    const result = nonEmpty(normRows.map(tmpl.map));
+    if (result.length) return { bank: tmpl.bank, rows: result };
+  }
+  return null;
+}
+
+// ── TIER 2 + 3: AUTO COLUMN DETECTION ────────────────────────────────────────
+const CANDIDATES = {
+  date:   ['trans. date', 'tran date', 'posting date', 'transaction date', 'value date', 'trans date', 'date'],
+  desc:   ['tran details', 'transaction details', 'narration', 'description', 'remarks', 'particulars', 'details', 'beneficiary', 'reference'],
+  debit:  ['debit amt', 'debit amount', 'amount dr', 'withdrawals', 'withdrawal', 'money out', 'charge', 'debit', 'dr'],
+  credit: ['credit amt', 'credit amount', 'amount cr', 'deposits', 'deposit', 'lodgement', 'money in', 'credit', 'cr'],
+  amount: ['transaction amount', 'amount', 'value'],
+  type:   ['dr/cr', 'cr/dr', 'transaction type', 'type'],
+};
+
+function pickCol(lo, orig, list) {
+  for (const c of list) {
+    const i = lo.indexOf(c);
+    if (i !== -1) return orig[i];
+  }
+  // Partial-match fallback
+  for (const c of list) {
+    const i = lo.findIndex(h => h.includes(c));
+    if (i !== -1) return orig[i];
+  }
+  return null;
+}
+
+function tryAutoDetect(headers, rows) {
+  const lo    = headers.map(h => h.toLowerCase().trim());
+  const dateK = pickCol(lo, headers, CANDIDATES.date);
+  const descK = pickCol(lo, headers, CANDIDATES.desc);
+  if (!dateK || !descK) return null;
+
+  const dbK = pickCol(lo, headers, CANDIDATES.debit);
+  const crK = pickCol(lo, headers, CANDIDATES.credit);
+
+  // Tier 2: explicit debit + credit columns found
+  if (dbK && crK) {
+    return nonEmpty(rows.map(r => makeRow(r, dateK, descK, dbK, crK)));
+  }
+
+  const amtK  = pickCol(lo, headers, CANDIDATES.amount);
+  const typeK = pickCol(lo, headers, CANDIDATES.type);
+
+  // Tier 3a: single amount + Dr/Cr type indicator
+  if (amtK && typeK) {
+    return nonEmpty(rows.map(r => makeRowTyped(r, dateK, descK, amtK, typeK)));
+  }
+
+  // Tier 3b: single signed amount column
+  if (amtK) {
+    return nonEmpty(rows.map(r => makeRowSingle(r, dateK, descK, amtK)));
+  }
+
+  return null;
+}
+
+// ── TIER 4: PDF REGEX EXTRACTION ─────────────────────────────────────────────
+function extractFromPdfText(text) {
+  const results = [];
+
+  for (const line of text.split('\n')) {
+    const t = line.trim();
+    if (!t) continue;
+
+    const dm = t.match(PDF_DATE_RE);
+    if (!dm) continue;
+
+    const amts = [];
+    let m;
+    PDF_AMTS_RE.lastIndex = 0;
+    while ((m = PDF_AMTS_RE.exec(t)) !== null) {
+      const n = cleanAmount(m[1]);
+      if (n !== null && n > 0) amts.push(m[1]);
+    }
+    if (!amts.length) continue;
+
+    const desc = t
+      .replace(PDF_DATE_RE, '')
+      .replace(PDF_AMTS_RE, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!desc) continue;
+
+    const up   = t.toUpperCase();
+    const isDr = /\bDR\b/.test(up) || /\bDEBIT\b/.test(up)  || /\bWITHDRAW/.test(up);
+    const isCr = /\bCR\b/.test(up) || /\bCREDIT\b/.test(up) || /\bDEPOSIT\b/.test(up);
+    // Last amount is usually running balance; use second-to-last as the transaction amount
+    const txnAmt = amts.length >= 2 ? amts[amts.length - 2] : amts[0];
+
+    results.push({
+      date:        dm[1],
+      description: desc,
+      debit:       (isDr && !isCr) ? txnAmt : '',
+      credit:      (!isDr || isCr) ? txnAmt : '',
+    });
+  }
+
+  return results;
+}
+
+// ── TIER 5: FAILURE MESSAGE ───────────────────────────────────────────────────
+const UNREADABLE = 'We could not read this file. Please export your statement as CSV from your banking app and try again.';
+
+function unreadableError() {
+  const err = new Error(UNREADABLE);
+  err.status = 400;
+  return err;
+}
+
+// ── PARSE ENTRY POINT ─────────────────────────────────────────────────────────
+async function parseFile(buffer, filename) {
   const ext = (filename.split('.').pop() || '').toLowerCase();
 
-  switch (ext) {
-    case 'csv':
-      return parseDelimitedText(buffer.toString('utf-8'));
-    case 'xlsx':
-    case 'xls':
-      return parseSpreadsheet(buffer);
-    default:
-      throw new Error(`Unsupported file type: .${ext}. Please upload a CSV or Excel file.`);
+  // PDF path — Tier 4 regex extraction
+  if (ext === 'pdf') {
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(buffer);
+    const rows = extractFromPdfText(data.text);
+    if (!rows.length) throw unreadableError();
+    return rows;
   }
+
+  // Structured file: CSV, TSV, TXT, XLSX, XLS
+  const { headers, rows } = (ext === 'xlsx' || ext === 'xls')
+    ? xlsxToRows(buffer)
+    : csvToRows(buffer.toString('utf8'));
+
+  if (!headers.length || !rows.length) throw unreadableError();
+
+  const tier1 = tryBankTemplate(headers, rows);
+  if (tier1 && tier1.rows.length) return tier1.rows;
+
+  const tier23 = tryAutoDetect(headers, rows);
+  if (tier23 && tier23.length) return tier23;
+
+  throw unreadableError();
 }
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
@@ -236,34 +439,46 @@ module.exports = async function handler(req, res) {
     return res.status(204).end();
   }
 
-  // STEP 1: POST only
+  // Health check — GET /api/audit confirms env vars are wired up
+  if (req.method === 'GET') {
+    return res.status(200).json({
+      ok:          true,
+      supabaseUrl: !!process.env.SUPABASE_URL,
+      serviceKey:  !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  // STEP 2–3: Verify JWT
-  const authHeader = req.headers.authorization || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorised' });
-  }
-  const jwt = authHeader.slice(7);
-  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
-  if (authError || !user) {
-    return res.status(401).json({ error: 'Unauthorised' });
-  }
-  const userId = user.id;
-
-  const { file_path, audit_id } = req.body || {};
-  if (!file_path || !audit_id) {
-    return res.status(400).json({ error: 'file_path and audit_id are required' });
-  }
-
-  // Verify the file belongs to the authenticated user
-  if (!file_path.startsWith(userId + '/')) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
+  // audit_id declared here so the catch block can mark it failed
+  let audit_id;
 
   try {
+    // ── Auth ──────────────────────────────────────────────────────────────────
+    const authHeader = req.headers.authorization || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+    const jwt = authHeader.slice(7);
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Unauthorised' });
+    }
+    const userId = user.id;
+
+    const body = req.body || {};
+    audit_id        = body.audit_id;
+    const file_path = body.file_path;
+    if (!file_path || !audit_id) {
+      return res.status(400).json({ error: 'file_path and audit_id are required' });
+    }
+    if (!file_path.startsWith(userId + '/')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    // ── File processing ───────────────────────────────────────────────────────
     // STEP 1: Download the raw file from Supabase Storage
     const { data: fileData, error: downloadErr } = await supabaseAdmin.storage
       .from('raw-uploads')
@@ -272,9 +487,8 @@ module.exports = async function handler(req, res) {
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const fileName = file_path.split('/').pop();
 
-    // STEP 2: Parse — branches by extension (csv/tsv/txt, xlsx/xls, pdf, ofx/qif)
-    // and always resolves to the standard { date, description, debit, credit } shape.
-    const rawRows = await parseFileContent(buffer, fileName);
+    // STEP 2: Parse file — Tier 1 bank templates → Tier 2/3 auto-detect → Tier 4 PDF → 400
+    const rawRows = await parseFile(buffer, fileName);
 
     // Normalise rows into working objects
     let rows = rawRows.map((raw, i) => ({
@@ -471,10 +685,16 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (err) {
-    console.error('[audit] error:', err.message);
-    try {
-      await supabaseAdmin.from('audits').update({ status: 'failed' }).eq('id', audit_id);
-    } catch (_) {}
-    return res.status(500).json({ error: 'Audit processing failed', detail: err.message });
+    console.error('[audit] crash:', err.stack || err.message);
+    if (audit_id) {
+      try {
+        await supabaseAdmin.from('audits').update({ status: 'failed' }).eq('id', audit_id);
+      } catch (_) {}
+    }
+    const httpStatus = err.status === 400 ? 400 : 500;
+    return res.status(httpStatus).json({
+      error:  err.message,
+      detail: httpStatus === 500 ? err.message : undefined,
+    });
   }
 };
