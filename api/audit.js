@@ -81,7 +81,12 @@ function parseAmount(val) {
     .replace(/[₦NGN,\s]/gi, '')
     .replace(/[^0-9.]/g, '')
     .trim();
-  return parseFloat(cleaned) || 0;
+  const num = parseFloat(cleaned) || 0;
+  if (num > 100_000_000) {
+    console.warn(`[audit] Suspicious amount "${val}" → ${num} — capped to 0`);
+    return 0;
+  }
+  return num;
 }
 
 // ── CLASSIFICATION ENGINE ─────────────────────────────────────────────────────
@@ -137,42 +142,23 @@ const PDF_DATE_RE = /\b(\d{1,2}[\/\-]\d{1,2}[\/\-](?:\d{4}|\d{2})|\d{4}[\/\-]\d{
 const PDF_AMTS_RE = /([\d,]+(?:\.\d{1,2})?)/g;
 
 // Parse delimited text (CSV/TSV/TXT) into { headers, rows }.
-// Headers keep their original casing; row keys match headers exactly.
+// Uses Papa.parse for robust handling of BOM, quoted commas, and missing trailing fields.
+// Each row carries both named keys (row['Debit']) and numeric-index keys (row[2]) so
+// the auto-detect tier can fall back to position if a named lookup returns undefined.
 function csvToRows(text) {
-  const lines = text.split(/\r?\n/);
-  const hi = lines.findIndex(l => l.trim());
-  if (hi === -1) return { headers: [], rows: [] };
-
-  const sample = lines[hi];
-  const delim = (sample.match(/;/g) || []).length > (sample.match(/,/g) || []).length ? ';' : ',';
-
-  function split(line) {
-    const out = [];
-    let cur = '', q = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
-      if (c === '"') {
-        if (q && line[i + 1] === '"') { cur += '"'; i++; }
-        else q = !q;
-      } else if (c === delim && !q) {
-        out.push(cur.trim()); cur = '';
-      } else {
-        cur += c;
-      }
-    }
-    out.push(cur.trim());
-    return out;
-  }
-
-  const headers = split(lines[hi]);
-  const rows = [];
-  for (let i = hi + 1; i < lines.length; i++) {
-    if (!lines[i].trim()) continue;
-    const cells = split(lines[i]);
-    const row = {};
-    headers.forEach((h, j) => { row[h] = cells[j] ?? ''; });
-    rows.push(row);
-  }
+  const Papa = require('papaparse');
+  const result = Papa.parse(text.trim(), {
+    header: true,
+    skipEmptyLines: true,
+    trimHeaders: true,
+  });
+  if (!result.data || !result.data.length) return { headers: [], rows: [] };
+  const headers = result.meta.fields || [];
+  const rows = result.data.map(row => {
+    // Attach row[0], row[1], … so callers can use index as a fallback
+    headers.forEach((h, i) => { row[i] = String(row[h] ?? '').trim(); });
+    return row;
+  });
   return { headers, rows };
 }
 
@@ -333,8 +319,16 @@ function tryAutoDetect(headers, rows) {
   const crK = pickCol(lo, headers, CANDIDATES.credit);
 
   // Tier 2: explicit debit + credit columns found
+  // Use index as fallback in case named key is missing (e.g. trailing-comma-free rows)
   if (dbK && crK) {
-    return nonEmpty(rows.map(r => makeRow(r, dateK, descK, dbK, crK)));
+    const dbIdx = headers.indexOf(dbK);
+    const crIdx = headers.indexOf(crK);
+    return nonEmpty(rows.map(r => ({
+      date:        String(r[dateK]              ?? '').trim(),
+      description: String(r[descK]              ?? '').trim(),
+      debit:       String(r[dbK] ?? r[dbIdx]    ?? '').trim(),
+      credit:      String(r[crK] ?? r[crIdx]    ?? '').trim(),
+    })));
   }
 
   const amtK  = pickCol(lo, headers, CANDIDATES.amount);
