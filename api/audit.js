@@ -500,7 +500,7 @@ module.exports = async function handler(req, res) {
 
     // STEP 2: Parse file — Tier 1 bank templates → Tier 2/3 auto-detect → Tier 4 PDF → 400
     const rawRows = await parseFile(buffer, fileName);
-    console.log(`[audit] Parsed ${rawRows.length} rows from ${fileName}`);
+    console.log(`[audit] Rows parsed: ${rawRows.length}`);
 
     // Normalise rows into working objects
     let rows = rawRows.map((raw, i) => ({
@@ -561,6 +561,7 @@ module.exports = async function handler(req, res) {
         credit: credit || null,
       };
     });
+    console.log(`[audit] Rows after cleaning: ${rows.filter(r => !r.is_flagged).length} clean, ${rows.filter(r => r.is_flagged).length} flagged`);
 
     // STEP 6: Balance check on clean rows only
     const cleanRows = rows.filter(r => !r.is_flagged);
@@ -633,26 +634,18 @@ module.exports = async function handler(req, res) {
       row_number:     r.row_number,
     }));
 
+    console.log(`[audit] Rows to insert: ${txnRows.length}`);
     const BATCH = 100;
-    let insertErrors = 0;
     for (let i = 0; i < txnRows.length; i += BATCH) {
       const batch = txnRows.slice(i, i + BATCH);
-      console.log(`[audit] Inserting batch of ${batch.length} rows (offset ${i})`);
-      const { error: batchErr } = await supabaseAdmin.from('transactions').insert(batch);
-      if (batchErr) {
-        // Batch rejected — retry one row at a time so good rows still get saved
-        console.error(`[audit] Batch ${Math.floor(i / BATCH) + 1} failed (${batchErr.message}), retrying row-by-row`);
-        for (const txnRow of batch) {
-          const { error: rowErr } = await supabaseAdmin.from('transactions').insert(txnRow);
-          if (rowErr) {
-            console.error(`[audit] Skipping row ${txnRow.row_number}: ${rowErr.message}`);
-            insertErrors++;
-          }
-        }
+      const { error: txnErr } = await supabaseAdmin
+        .from('transactions')
+        .insert(batch);
+      if (txnErr) {
+        console.error(`[audit] Insert result: error — batch ${Math.floor(i / BATCH) + 1}: ${txnErr.message}`);
+        throw new Error(`Transaction insert failed (batch ${Math.floor(i / BATCH) + 1}): ${txnErr.message}`);
       }
-    }
-    if (insertErrors > 0) {
-      console.warn(`[audit] ${insertErrors} of ${txnRows.length} rows could not be saved`);
+      console.log(`[audit] Insert result: success — batch ${Math.floor(i / BATCH) + 1} (${batch.length} rows)`);
     }
 
     // STEP 10: Build financial summary
