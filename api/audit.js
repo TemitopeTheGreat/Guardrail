@@ -618,7 +618,6 @@ module.exports = async function handler(req, res) {
       debit:          r.debit  ?? null,
       credit:         r.credit ?? null,
       category:       r.category,
-      financial_type: r.financial_type || 'other',
       is_flagged:     r.is_flagged,
       flag_reason:    r.flag_reason || null,
       row_number:     r.row_number,
